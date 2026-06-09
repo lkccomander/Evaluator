@@ -1,0 +1,147 @@
+package main
+
+import (
+	"context"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	chimw "github.com/go-chi/chi/v5/middleware"
+
+	"github.com/quiniela2026/api/internal/auth"
+	"github.com/quiniela2026/api/internal/config"
+	"github.com/quiniela2026/api/internal/db"
+	"github.com/quiniela2026/api/internal/handlers"
+	"github.com/quiniela2026/api/internal/middleware"
+)
+
+func main() {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
+
+	ctx := context.Background()
+
+	pool, err := db.Connect(ctx, cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("failed to connect to database: %v", err)
+	}
+	defer pool.Close()
+	log.Println("connected to database")
+
+	authSvc := auth.NewService(cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
+
+	authH := &handlers.AuthHandler{DB: pool, AuthSvc: authSvc}
+	leagueH := &handlers.LeagueHandler{DB: pool}
+	matchH := &handlers.MatchHandler{DB: pool}
+	predH := &handlers.PredictionHandler{DB: pool}
+	leaderH := &handlers.LeaderboardHandler{DB: pool}
+
+	r := chi.NewRouter()
+
+	r.Use(chimw.Logger)
+	r.Use(chimw.Recoverer)
+	r.Use(chimw.RealIP)
+	r.Use(chimw.Timeout(30 * time.Second))
+	r.Use(middleware.CORS)
+
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"status":"ok"}`))
+	})
+
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Route("/auth", func(r chi.Router) {
+			r.Post("/register", authH.Register)
+			r.Post("/login", authH.Login)
+			r.Post("/refresh", authH.Refresh)
+		})
+
+		r.Route("/leagues", func(r chi.Router) {
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.Auth(authSvc))
+				r.Use(middleware.Admin)
+				r.Post("/", leagueH.Create)
+				r.Get("/", leagueH.List)
+				r.Get("/{id}/members", leagueH.GetMembers)
+			})
+
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.Auth(authSvc))
+				r.Post("/join", leagueH.Join)
+				r.Get("/mine", leagueH.GetMyLeague)
+			})
+		})
+
+		r.Route("/matches", func(r chi.Router) {
+			r.Get("/", matchH.List)
+			r.Get("/{id}", matchH.Get)
+
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.Auth(authSvc))
+				r.Use(middleware.Admin)
+				r.Put("/{id}/result", matchH.EnterResult)
+			})
+		})
+
+		r.Route("/predictions", func(r chi.Router) {
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.Auth(authSvc))
+				r.Get("/my", predH.GetMy)
+				r.Post("/", predH.Submit)
+				r.Put("/{id}", predH.Update)
+			})
+		})
+
+		r.Route("/leaderboard", func(r chi.Router) {
+			r.Get("/global", leaderH.Global)
+			r.Get("/league/{id}", leaderH.ByLeague)
+
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.Auth(authSvc))
+				r.Get("/mine", leaderH.MyLeague)
+				r.Get("/me", leaderH.MyGlobalPosition)
+			})
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(authSvc))
+			r.Get("/me", authH.Me)
+		})
+	})
+
+	srv := &http.Server{
+		Addr:         cfg.Port,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		log.Printf("server starting on %s", cfg.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server error: %v", err)
+		}
+	}()
+
+	<-quit
+	log.Println("shutting down server...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Fatalf("server forced to shutdown: %v", err)
+	}
+
+	log.Println("server stopped")
+}
