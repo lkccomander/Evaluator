@@ -1,4 +1,4 @@
-const BASE = '/api/v1'
+const BASE = (typeof import.meta !== 'undefined' ? import.meta.env.VITE_API_URL : '') || '/api/v1'
 
 interface RequestOptions {
   method?: string
