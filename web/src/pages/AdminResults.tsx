@@ -39,17 +39,17 @@ export default function AdminResults() {
         {pendingMatches.map(m => {
           const sc = scores[m.id] ?? { home: '', away: '' }
           return (
-            <div key={m.id} className="bg-surface-card border border-surface-border rounded-lg px-4 py-3 flex items-center justify-between text-sm">
-              <div className="flex items-center gap-4">
-                <span className="text-muted text-xs">{m.group_name ? `Grupo ${m.group_name}` : ''}</span>
-                <span className="font-medium w-28 text-right">{m.home_team}</span>
-                <div className="flex items-center gap-1">
+            <div key={m.id} className="bg-surface-card border border-surface-border rounded-lg px-3 py-3 flex items-center justify-between text-sm gap-2">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <span className="hidden sm:inline text-muted text-xs shrink-0">{m.group_name ? `Grupo ${m.group_name}` : ''}</span>
+                <span className="font-medium truncate text-right min-w-0 flex-1">{m.home_team}</span>
+                <div className="flex items-center gap-1 shrink-0">
                   <input
                     type="number"
                     min={0}
                     value={sc.home}
                     onChange={e => setScore(m.id, 'home', e.target.value)}
-                    className="w-10 h-10 bg-surface border border-surface-border rounded text-center font-mono text-sm text-white focus:outline-none focus:border-gold"
+                    className="w-12 h-12 bg-surface border border-surface-border rounded text-center font-mono text-base text-white focus:outline-none focus:border-gold"
                   />
                   <span className="text-muted">-</span>
                   <input
@@ -57,15 +57,15 @@ export default function AdminResults() {
                     min={0}
                     value={sc.away}
                     onChange={e => setScore(m.id, 'away', e.target.value)}
-                    className="w-10 h-10 bg-surface border border-surface-border rounded text-center font-mono text-sm text-white focus:outline-none focus:border-gold"
+                    className="w-12 h-12 bg-surface border border-surface-border rounded text-center font-mono text-base text-white focus:outline-none focus:border-gold"
                   />
                 </div>
-                <span className="font-medium w-28">{m.away_team}</span>
+                <span className="font-medium truncate min-w-0 flex-1">{m.away_team}</span>
               </div>
               <button
                 onClick={() => resultMut.mutate({ id: m.id, home: Number(sc.home), away: Number(sc.away) })}
                 disabled={sc.home === '' || sc.away === '' || resultMut.isPending}
-                className="bg-gold text-black font-semibold px-3 py-1.5 rounded text-xs disabled:opacity-50 hover:bg-gold-dark transition-colors"
+                className="bg-gold text-black font-semibold px-4 py-2 rounded text-xs shrink-0 disabled:opacity-50 hover:bg-gold-dark transition-colors min-h-[44px]"
               >
                 {resultMut.isPending ? '...' : 'Guardar'}
               </button>

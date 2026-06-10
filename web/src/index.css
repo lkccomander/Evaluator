@@ -16,6 +16,12 @@ body {
   background-color: var(--color-surface);
   color: #e5e5e5;
   font-family: system-ui, -apple-system, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
 input[type="number"]::-webkit-inner-spin-button,
@@ -25,4 +31,8 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+::selection {
+  background-color: #f59e0b40;
 }

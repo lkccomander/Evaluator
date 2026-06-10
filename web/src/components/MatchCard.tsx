@@ -64,7 +64,7 @@ export default function MatchCard({
                 value={home}
                 disabled={!canPredict}
                 onChange={e => setHome(e.target.value)}
-                className="w-10 h-10 bg-surface border border-surface-border rounded text-center font-mono text-sm text-white disabled:opacity-30 focus:outline-none focus:border-gold"
+                className="w-12 h-12 bg-surface border border-surface-border rounded text-center font-mono text-base text-white disabled:opacity-30 focus:outline-none focus:border-gold"
               />
               <span className="text-muted font-mono">-</span>
               <input
@@ -74,7 +74,7 @@ export default function MatchCard({
                 value={away}
                 disabled={!canPredict}
                 onChange={e => setAway(e.target.value)}
-                className="w-10 h-10 bg-surface border border-surface-border rounded text-center font-mono text-sm text-white disabled:opacity-30 focus:outline-none focus:border-gold"
+                className="w-12 h-12 bg-surface border border-surface-border rounded text-center font-mono text-base text-white disabled:opacity-30 focus:outline-none focus:border-gold"
               />
             </div>
           )}
@@ -89,7 +89,7 @@ export default function MatchCard({
           <button
             onClick={handleSave}
             disabled={saving}
-            className="text-xs text-gold hover:underline disabled:opacity-50"
+            className="text-xs text-gold hover:underline disabled:opacity-50 min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             {saving ? '...' : 'Guardar'}
           </button>

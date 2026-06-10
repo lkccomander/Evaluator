@@ -29,17 +29,17 @@ export default function Leaderboard() {
     <div>
       <div className="flex items-center gap-4 mb-4">
         <h1 className="text-lg font-bold">Leaderboard</h1>
-        <div className="flex bg-surface-card border border-surface-border rounded-lg overflow-hidden text-xs">
+        <div className="flex bg-surface-card border border-surface-border rounded-lg overflow-hidden">
           <button
             onClick={() => setView('global')}
-            className={`px-3 py-1.5 transition-colors ${view === 'global' ? 'bg-gold text-black font-semibold' : 'text-muted hover:text-white'}`}
+            className={`px-4 py-2 text-xs font-semibold transition-colors min-h-[44px] ${view === 'global' ? 'bg-gold text-black' : 'text-muted hover:text-white'}`}
           >
             Global
           </button>
           {user?.league_id && (
             <button
               onClick={() => setView('league')}
-              className={`px-3 py-1.5 transition-colors ${view === 'league' ? 'bg-gold text-black font-semibold' : 'text-muted hover:text-white'}`}
+              className={`px-4 py-2 text-xs font-semibold transition-colors min-h-[44px] ${view === 'league' ? 'bg-gold text-black' : 'text-muted hover:text-white'}`}
             >
               Mi Liga
             </button>

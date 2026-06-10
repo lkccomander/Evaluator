@@ -53,7 +53,7 @@ export default function AdminLeagues() {
         {createMut.isError && (
           <p className="text-error text-xs mb-2">{createMut.error.message}</p>
         )}
-        <div className="bg-surface-card border border-surface-border rounded-lg overflow-hidden">
+        <div className="bg-surface-card border border-surface-border rounded-lg overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-muted text-xs uppercase border-b border-surface-border">
