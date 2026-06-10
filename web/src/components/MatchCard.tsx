@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Match } from '../api/matches'
 import { submitPrediction } from '../api/predictions'
 import Countdown from './Countdown'
+import { TeamName } from './TeamFlag'
 
 export default function MatchCard({
   match,
@@ -48,7 +49,7 @@ export default function MatchCard({
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <div className="flex-1 text-right font-medium text-sm truncate">{match.home_team}</div>
+        <div className="flex-1 text-right font-medium text-sm min-w-0"><TeamName name={match.home_team} align="right" /></div>
 
         <div className="flex items-center gap-2">
           {match.status === 'finished' ? (
@@ -80,7 +81,7 @@ export default function MatchCard({
           )}
         </div>
 
-        <div className="flex-1 font-medium text-sm truncate">{match.away_team}</div>
+        <div className="flex-1 font-medium text-sm min-w-0"><TeamName name={match.away_team} /></div>
       </div>
 
       <div className="flex items-center justify-between">

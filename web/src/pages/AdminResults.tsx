@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getMatches, enterResult } from '../api/matches'
+import { TeamName } from '../components/TeamFlag'
 
 export default function AdminResults() {
   const [scores, setScores] = useState<Record<string, { home: string; away: string }>>({})
@@ -42,7 +43,7 @@ export default function AdminResults() {
             <div key={m.id} className="bg-surface-card border border-surface-border rounded-lg px-3 py-3 flex items-center justify-between text-sm gap-2">
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <span className="hidden sm:inline text-muted text-xs shrink-0">{m.group_name ? `Grupo ${m.group_name}` : ''}</span>
-                <span className="font-medium truncate text-right min-w-0 flex-1">{m.home_team}</span>
+                <span className="font-medium text-right min-w-0 flex-1"><TeamName name={m.home_team} align="right" /></span>
                 <div className="flex items-center gap-1 shrink-0">
                   <input
                     type="number"
@@ -60,7 +61,7 @@ export default function AdminResults() {
                     className="w-12 h-12 bg-surface border border-surface-border rounded text-center font-mono text-base text-white focus:outline-none focus:border-gold"
                   />
                 </div>
-                <span className="font-medium truncate min-w-0 flex-1">{m.away_team}</span>
+                <span className="font-medium min-w-0 flex-1"><TeamName name={m.away_team} /></span>
               </div>
               <button
                 onClick={() => resultMut.mutate({ id: m.id, home: Number(sc.home), away: Number(sc.away) })}

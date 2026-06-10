@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { getMyPredictions } from '../api/predictions'
 import Countdown from '../components/Countdown'
+import { TeamName } from '../components/TeamFlag'
 
 export default function MyPredictions() {
   const { data: predictions, isLoading, isError } = useQuery({
@@ -53,9 +54,9 @@ export default function MyPredictions() {
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-muted text-xs shrink-0 w-16">{crTime}</span>
-                    <span className="font-medium truncate">{p.home_team}</span>
+                    <span className="font-medium min-w-0"><TeamName name={p.home_team} /></span>
                     <span className="font-mono font-bold text-gold shrink-0">{p.home_score_pred}–{p.away_score_pred}</span>
-                    <span className="font-medium truncate">{p.away_team}</span>
+                    <span className="font-medium min-w-0"><TeamName name={p.away_team} /></span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {p.locked && !p.points_earned && <span className="text-xs text-error">CERRADO</span>}
