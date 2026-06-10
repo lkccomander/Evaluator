@@ -1,0 +1,27 @@
+# Env
+.env
+
+# Go
+api/bin/
+api/tmp/
+
+# Node
+web/node_modules/
+web/dist/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+quiniela2026.code-workspace
+.idea/
+.vscode/
+
+
+# Temp
+railwainit.ps1
