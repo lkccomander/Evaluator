@@ -1,35 +1,30 @@
 [project]
 name = "quiniela-wc2026"
 
-[build]
-  builder = "dockerfile"
+[[services]]
+name = "api"
+rootPath = "api"
+
+[services.build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[services.deploy]
+startCommand = "./api"
+healthcheckPath = "/health"
+healthcheckTimeout = 10
+
+[services.env]
+PORT = "8080"
 
 [[services]]
-  name = "api"
-  dockerfilePath = "api/Dockerfile"
-  rootPath = "api"
+name = "web"
+rootPath = "web"
 
-  [services.build]
-    builder = "dockerfile"
-    dockerfilePath = "Dockerfile"
+[services.build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
 
-  [services.deploy]
-    startCommand = "./api"
-    healthcheckPath = "/health"
-    healthcheckTimeout = 10
-
-  [services.env]
-    PORT = "8080"
-
-[[services]]
-  name = "web"
-  dockerfilePath = "web/Dockerfile"
-  rootPath = "web"
-
-  [services.build]
-    builder = "dockerfile"
-    dockerfilePath = "Dockerfile"
-
-  [services.deploy]
-    healthcheckPath = "/"
-    healthcheckTimeout = 10
+[services.deploy]
+healthcheckPath = "/"
+healthcheckTimeout = 10
