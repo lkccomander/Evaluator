@@ -1,7 +1,15 @@
+-- +goose Down
+ALTER TABLE users DROP COLUMN IF EXISTS player_team_name;
+ALTER TABLE users DROP COLUMN IF EXISTS updated_at;
+ALTER TABLE leagues DROP COLUMN IF EXISTS updated_at;
+ALTER TABLE matches DROP COLUMN IF EXISTS stage;
+ALTER TABLE matches DROP COLUMN IF EXISTS created_at;
+ALTER TABLE matches DROP COLUMN IF EXISTS updated_at;
+
 -- 002_migration_fixes.sql
 -- Corrige desfases entre el schema original (001_create_tables.sql) y el código Go
 -- +goose Up
-
+DROP TABLE IF EXISTS refresh_tokens;
 -- 1. Agregar columnas faltantes a users
 ALTER TABLE users ADD COLUMN IF NOT EXISTS player_team_name TEXT NOT NULL DEFAULT '';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
@@ -30,11 +38,5 @@ CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
 -- Si quieres que sea obligatorio en INSERT, deja el default; si no, puedes quitarlo:
 ALTER TABLE users ALTER COLUMN player_team_name DROP DEFAULT;
 
--- +goose Down
-ALTER TABLE users DROP COLUMN IF EXISTS player_team_name;
-ALTER TABLE users DROP COLUMN IF EXISTS updated_at;
-ALTER TABLE leagues DROP COLUMN IF EXISTS updated_at;
-ALTER TABLE matches DROP COLUMN IF EXISTS stage;
-ALTER TABLE matches DROP COLUMN IF EXISTS created_at;
-ALTER TABLE matches DROP COLUMN IF EXISTS updated_at;
-DROP TABLE IF EXISTS refresh_tokens;
+
+
