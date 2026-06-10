@@ -8,7 +8,7 @@ import LeagueBanner from '../components/LeagueBanner'
 export default function Matches() {
   const { user } = useAuth()
 
-  const { data: matches } = useQuery({
+  const { data: matches, isLoading, isError } = useQuery({
     queryKey: ['matches'],
     queryFn: getMatches,
     refetchInterval: 30_000,
@@ -25,20 +25,48 @@ export default function Matches() {
     predictions?.map(p => [p.match_id, { home: p.home_score_pred, away: p.away_score_pred }]) ?? [],
   )
 
+  if (isLoading) {
+    return (
+      <div>
+        <LeagueBanner />
+        <div className="flex items-center justify-center py-12">
+          <div className="w-6 h-6 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div>
+        <LeagueBanner />
+        <div className="bg-surface-card border border-surface-border rounded-lg p-6 text-center">
+          <p className="text-error text-sm">Error al cargar los partidos</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <LeagueBanner />
       <h1 className="text-lg font-bold mb-4">Partidos</h1>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {matches?.map(m => (
-          <MatchCard
-            key={m.id}
-            match={m}
-            userHasLeague={!!user?.league_id}
-            userPrediction={predMap.get(m.id)}
-          />
-        ))}
-      </div>
+      {!matches?.length ? (
+        <div className="bg-surface-card border border-surface-border rounded-lg p-6 text-center">
+          <p className="text-muted text-sm">No hay partidos disponibles</p>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {matches.map(m => (
+            <MatchCard
+              key={m.id}
+              match={m}
+              userHasLeague={!!user?.league_id}
+              userPrediction={predMap.get(m.id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

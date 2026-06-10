@@ -15,15 +15,19 @@ export default function MatchCard({
   const [home, setHome] = useState(userPrediction?.home?.toString() ?? '')
   const [away, setAway] = useState(userPrediction?.away?.toString() ?? '')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const canPredict = userHasLeague && !match.locked && match.status === 'upcoming'
 
   const handleSave = async () => {
     if (!canPredict) return
     setSaving(true)
+    setError('')
     try {
       await submitPrediction(match.id, Number(home), Number(away))
-    } catch { /* ignore */ }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al guardar')
+    }
     setSaving(false)
   }
 
@@ -96,6 +100,7 @@ export default function MatchCard({
           </span>
         )}
       </div>
+      {error && <p className="text-error text-xs text-center">{error}</p>}
     </div>
   )
 }
