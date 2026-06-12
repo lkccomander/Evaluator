@@ -68,22 +68,20 @@ func (h *BannerHandler) PostMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var activeCount int
-	err := h.DB.QueryRow(r.Context(),
+	if err := h.DB.QueryRow(r.Context(),
 		`SELECT COUNT(*) FROM banner_messages
-		  WHERE created_by = $1 AND (expires_at IS NULL OR expires_at > NOW())`,
-		userID,
-	).Scan(&activeCount)
-	if err != nil {
+		  WHERE expires_at IS NULL OR expires_at > NOW()`,
+	).Scan(&activeCount); err != nil {
 		respondError(w, http.StatusInternalServerError, "database error")
 		return
 	}
 	if activeCount > 0 {
-		respondError(w, http.StatusConflict, "ya tienes un mensaje activo. Espera a que expire (3h) para publicar otro.")
+		respondError(w, http.StatusConflict, "Ya hay un mensaje activo en el banner. Espera a que expire (3h) para publicar otro.")
 		return
 	}
 
 	var res bannerResponse
-	err = h.DB.QueryRow(r.Context(),
+	err := h.DB.QueryRow(r.Context(),
 		`INSERT INTO banner_messages (message, created_by, expires_at)
 		 VALUES ($1, $2, NOW() + INTERVAL '3 hours')
 		 RETURNING id, message, created_by, created_at, expires_at`,

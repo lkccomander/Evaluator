@@ -194,6 +194,30 @@ function renderRulesMarkdown(markdown: string) {
   return elements
 }
 
+function useTimer(expiresAt: string | null) {
+  const [remaining, setRemaining] = useState(0)
+
+  useEffect(() => {
+    if (!expiresAt) return
+    const update = () => {
+      const diff = new Date(expiresAt).getTime() - Date.now()
+      setRemaining(Math.max(0, diff))
+    }
+    update()
+    const id = setInterval(update, 1000)
+    return () => clearInterval(id)
+  }, [expiresAt])
+
+  return remaining
+}
+
+function formatTimer(ms: number) {
+  const h = Math.floor(ms / 3600000)
+  const m = Math.floor((ms % 3600000) / 60000)
+  const s = Math.floor((ms % 60000) / 1000)
+  return `${h}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`
+}
+
 function BannerMessageSection() {
   const { user } = useAuth()
   const qc = useQueryClient()
@@ -206,7 +230,9 @@ function BannerMessageSection() {
     refetchInterval: 60_000,
   })
 
-  const myMessage = banners.find(b => b.created_by === user?.id)
+  const banner = banners[0] ?? null
+  const myMessage = banner?.created_by === user?.id
+  const remaining = useTimer(banner?.expires_at ?? null)
 
   const mut = useMutation({
     mutationFn: (msg: string) => postBannerMessage(msg),
@@ -221,14 +247,15 @@ function BannerMessageSection() {
   return (
     <section className="mt-6 rounded-[28px] border border-surface-border bg-[linear-gradient(180deg,rgba(26,26,26,0.98),rgba(15,15,15,0.98))] shadow-[0_24px_80px_rgba(0,0,0,0.35)] p-5 md:p-6">
       <h2 className="text-sm font-semibold uppercase tracking-[0.22em] text-gold mb-4">Mensaje en el banner</h2>
-      {myMessage ? (
+      {banner ? (
         <div>
-          <p className="text-sm text-slate-300 mb-2">
-            Tu mensaje activo: <span className="text-white font-semibold">&ldquo;{myMessage.message}&rdquo;</span>
+          <p className="text-sm text-slate-300 mb-1">
+            {myMessage ? 'Tu mensaje:' : 'Mensaje activo:'}{' '}
+            <span className="text-white font-semibold">&ldquo;{banner.message}&rdquo;</span>
           </p>
-          <p className="text-xs text-muted">
-            Expira en 3 horas desde su publicación. Después podrás publicar otro.
-          </p>
+          {remaining > 0 ? (
+            <p className="font-mono text-xs text-gold">{formatTimer(remaining)}</p>
+          ) : null}
         </div>
       ) : (
         <div className="flex items-center gap-2">
