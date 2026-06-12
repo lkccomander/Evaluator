@@ -44,7 +44,7 @@ func main() {
 	predH := &handlers.PredictionHandler{DB: pool}
 	leaderH := &handlers.LeaderboardHandler{DB: pool}
 	userH := &handlers.UserHandler{DB: pool}
-	tickerH := &handlers.TickerHandler{Provider: worldCup26Client, TZ: cfg.CostaRicaTZ}
+	tickerH := &handlers.TickerHandler{Provider: worldCup26Client, TZ: cfg.CostaRicaTZ, DB: pool}
 	bannerH := &handlers.BannerHandler{DB: pool}
 
 	r := chi.NewRouter()
