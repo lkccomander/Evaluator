@@ -102,6 +102,7 @@ export default function GameTicker() {
   const prevScores = useRef<Record<string, string>>({})
   const goalFlashIds = useRef<Set<string | number>>(new Set())
   const [, forceRender] = useState(0)
+  const [chantActive, setChantActive] = useState(false)
 
   const { data: games = [] } = useQuery({
     queryKey: ['ticker', 'today'],
@@ -139,17 +140,18 @@ export default function GameTicker() {
   // Listen for manual goal trigger from admin
   useEffect(() => {
     const handler = () => {
-      const liveIds = new Set<string | number>()
+      const scoredIds = new Set<string | number>()
       for (const game of games) {
-        if (game.status === 'En juego') {
-          liveIds.add(game.id)
+        if (game.status !== 'Programado') {
+          scoredIds.add(game.id)
         }
       }
-      if (liveIds.size === 0) return
-      goalFlashIds.current = liveIds
+      goalFlashIds.current = scoredIds
+      setChantActive(true)
       forceRender(n => n + 1)
       setTimeout(() => {
         goalFlashIds.current = new Set()
+        setChantActive(false)
         forceRender(n => n + 1)
       }, 3000)
     }
@@ -181,7 +183,7 @@ export default function GameTicker() {
       </div>
       <div className="ticker-wrap py-2">
         <div className="ticker-track">
-          {goalFlashIds.current.size > 0 && (
+          {(goalFlashIds.current.size > 0 || chantActive) && (
             <span className="ticker-goal-chant inline-flex items-center px-6 text-sm uppercase">
               CANTALOOOOOOOOO!!! CANTALOOOOOOOOO!!!
             </span>
