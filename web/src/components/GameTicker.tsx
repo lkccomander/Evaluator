@@ -1,12 +1,26 @@
 import { useQuery } from '@tanstack/react-query'
 import { getTodayTicker } from '../api/ticker'
+import { teamColors } from '../lib/teamColors'
 
-type TickerItem = {
+type TickerGame = {
+  kind: 'game'
   id: string | number
-  text: string
   status: string
-  liveGoal?: boolean
+  liveGoal: boolean
+  homeTeam: string
+  awayTeam: string
+  details: string
+  group: string
 }
+
+type TickerFallback = {
+  kind: 'fallback'
+  id: string | number
+  status: string
+  text: string
+}
+
+type TickerItem = TickerGame | TickerFallback
 
 function itemClass(status: string) {
   if (status === 'En juego') return 'tick-down'
@@ -39,19 +53,23 @@ function buildItems(games: Awaited<ReturnType<typeof getTodayTicker>>): TickerIt
           : score
     const hasGoal = Number(game.home_score) > 0 || Number(game.away_score) > 0
     return {
+      kind: 'game' as const,
       id: game.id,
       status: game.status,
       liveGoal: game.status === 'En juego' && hasGoal,
-      text: `${teamCode(game.home_team)}/${teamCode(game.away_team)} ${details} ${game.status.toUpperCase()} GRUPO ${game.group}`,
+      homeTeam: game.home_team,
+      awayTeam: game.away_team,
+      details,
+      group: game.group,
     }
   })
 }
 
 const FALLBACK_ITEMS: TickerItem[] = [
-  { id: 'f1', text: 'QUINI26 — PREDICCIÓN MUNDIAL 2026', status: 'flat' },
-  { id: 'f2', text: '72 PARTIDOS — FASE DE GRUPOS', status: 'flat' },
-  { id: 'f3', text: '11 JUNIO — 28 JUNIO 2026', status: 'flat' },
-  { id: 'f4', text: '¡HACE TUS PRONÓSTICOS!', status: 'up' },
+  { kind: 'fallback', id: 'f1', text: 'QUINI26 — PREDICCIÓN MUNDIAL 2026', status: 'flat' },
+  { kind: 'fallback', id: 'f2', text: '72 PARTIDOS — FASE DE GRUPOS', status: 'flat' },
+  { kind: 'fallback', id: 'f3', text: '11 JUNIO — 28 JUNIO 2026', status: 'flat' },
+  { kind: 'fallback', id: 'f4', text: '¡HACE TUS PRONÓSTICOS!', status: 'up' },
 ]
 
 function TickerSpan({ item }: { item: TickerItem }) {
@@ -60,7 +78,20 @@ function TickerSpan({ item }: { item: TickerItem }) {
   return (
     <span className={`ticker-led-text inline-flex items-center gap-3 px-6 text-sm uppercase ${itemClass(item.status)}`}>
       <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
-      <span>{item.text}</span>
+      {item.kind === 'game' ? (
+        <span>
+          <span className="font-bold" style={{ color: teamColors[item.homeTeam] ?? '#fff' }}>
+            {teamCode(item.homeTeam)}
+          </span>
+          <span className="mx-1">/</span>
+          <span className="font-bold" style={{ color: teamColors[item.awayTeam] ?? '#fff' }}>
+            {teamCode(item.awayTeam)}
+          </span>
+          <span className="ml-2">{item.details} {item.status.toUpperCase()} GRUPO {item.group}</span>
+        </span>
+      ) : (
+        <span>{item.text}</span>
+      )}
     </span>
   )
 }
@@ -73,10 +104,10 @@ export default function GameTicker() {
   })
 
   const rawItems = games.length > 0 ? buildItems(games) : []
-  const hasLiveGoal = rawItems.some(i => i.liveGoal)
+  const hasLiveGoal = rawItems.some(i => i.kind === 'game' && i.liveGoal)
   const allItems = rawItems.length > 0 ? rawItems : FALLBACK_ITEMS
 
-  const ambientRows = allItems.slice(0, 6).map(i => i.text)
+  const ambientRows = allItems.slice(0, 6).map(i => (i.kind === 'game' ? `${teamCode(i.homeTeam)}/${teamCode(i.awayTeam)} ${i.details} ${i.status} GRUPO ${i.group}` : i.text))
 
   return (
     <div className="ticker-board border-b border-surface-border overflow-hidden">
