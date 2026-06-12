@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getTodayTicker } from '../api/ticker'
 import { getBannerMessages } from '../api/banner'
@@ -14,6 +14,7 @@ type TickerGame = {
   group: string
   score: string
   timeLabel: string
+  justScored: boolean
 }
 
 type TickerFallback = {
@@ -31,7 +32,7 @@ function itemClass(status: string) {
   return 'tick-up'
 }
 
-function buildItems(games: Awaited<ReturnType<typeof getTodayTicker>>): TickerItem[] {
+function buildItems(games: Awaited<ReturnType<typeof getTodayTicker>>, justScoredSet: Set<string | number> = new Set()): TickerItem[] {
   return games.map(game => {
     const kickoff = new Date(game.kickoff).toLocaleString('es-CR', {
       timeZone: 'America/Costa_Rica',
@@ -58,6 +59,7 @@ function buildItems(games: Awaited<ReturnType<typeof getTodayTicker>>): TickerIt
       group: game.group,
       score: game.status === 'Programado' ? '' : score,
       timeLabel: isLive ? game.time_elapsed.toUpperCase() : '',
+      justScored: justScoredSet.has(game.id),
     }
   })
 }
@@ -80,7 +82,11 @@ function TickerSpan({ item }: { item: TickerItem }) {
           <span className="font-bold">{item.homeTeam}</span>
           <span className="mx-1">/</span>
           <span className="font-bold text-red-500">{item.awayTeam}</span>
-          {item.score && <span className="ml-2 text-orange-500">{item.score}</span>}
+          {item.score && (
+            <span className={`ml-2 text-orange-500 ${item.kind === 'game' && item.justScored ? 'goal-flash' : ''}`}>
+              {item.score}
+            </span>
+          )}
           {item.timeLabel && <span className="ml-1">{item.timeLabel}</span>}
           {item.status === 'Programado' && <span className="ml-2">{item.details}</span>}
           <span className="ml-2">{item.status.toUpperCase()} GRUPO {item.group}</span>
@@ -94,6 +100,9 @@ function TickerSpan({ item }: { item: TickerItem }) {
 
 export default function GameTicker() {
   const prevScores = useRef<Record<string, string>>({})
+  const goalFlashIds = useRef<Set<string | number>>(new Set())
+  const [, forceRender] = useState(0)
+
   const { data: games = [] } = useQuery({
     queryKey: ['ticker', 'today'],
     queryFn: getTodayTicker,
@@ -105,23 +114,29 @@ export default function GameTicker() {
     refetchInterval: 60_000,
   })
 
-  const rawItems = games.length > 0 ? buildItems(games) : []
-
-  const newGoal = (() => {
+  // Detect new goals
+  useEffect(() => {
+    const newScored = new Set<string | number>()
     for (const game of games) {
       const key = game.id
       const cur = `${game.home_score}-${game.away_score}`
       const prev = prevScores.current[key]
       if (prev && cur !== prev) {
-        prevScores.current[key] = cur
-        return true
+        newScored.add(key)
       }
-      if (!prev) {
-        prevScores.current[key] = cur
-      }
+      prevScores.current[key] = cur
     }
-    return false
-  })()
+    if (newScored.size > 0) {
+      goalFlashIds.current = newScored
+      forceRender(n => n + 1)
+      setTimeout(() => {
+        goalFlashIds.current = new Set()
+        forceRender(n => n + 1)
+      }, 3000)
+    }
+  }, [games])
+
+  const rawItems = games.length > 0 ? buildItems(games, goalFlashIds.current) : []
 
   const bannerItems: TickerItem[] = banners.map(b => ({
     kind: 'fallback' as const,
@@ -145,7 +160,7 @@ export default function GameTicker() {
       </div>
       <div className="ticker-wrap py-2">
         <div className="ticker-track">
-          {newGoal && (
+          {goalFlashIds.current.size > 0 && (
             <span className="ticker-goal-chant inline-flex items-center px-6 text-sm uppercase">
               CANTALOOOOOOOOO!!! CANTALOOOOOOOOO!!!
             </span>

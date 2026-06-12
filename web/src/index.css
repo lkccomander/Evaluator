@@ -164,6 +164,20 @@ input[type="number"] {
   }
 }
 
+.goal-flash {
+  animation: goal-flash-glow 0.3s ease-in-out 6;
+  display: inline-block;
+}
+
+@keyframes goal-flash-glow {
+  0%, 100% {
+    filter: brightness(1) drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    filter: brightness(1.8) drop-shadow(0 0 8px #f97316) drop-shadow(0 0 16px #f97316);
+  }
+}
+
 
 .ticker-ambient-bg {
   position: absolute;
