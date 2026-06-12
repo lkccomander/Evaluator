@@ -8,6 +8,7 @@ export const teamFlags: Record<string, string> = {
   "Estados Unidos": "US",
   "Paraguay": "PY",
   "Australia": "AU",
+  "Turquía": "TR",
   "Türkiye": "TR",
   "Catar": "QA",
   "Suiza": "CH",

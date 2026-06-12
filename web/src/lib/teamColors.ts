@@ -9,6 +9,7 @@ export const teamColors: Record<string, string> = {
   Paraguay: '#D52B1E',
   Australia: '#00843D',
   Türkiye: '#E30A17',
+  Turquía: '#E30A17',
   Qatar: '#8A1538',
   Switzerland: '#DA291C',
   Brazil: '#009739',
