@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getTodayTicker } from '../api/ticker'
 import { teamColors } from '../lib/teamColors'
@@ -97,14 +98,31 @@ function TickerSpan({ item }: { item: TickerItem }) {
 }
 
 export default function GameTicker() {
+  const prevScores = useRef<Record<string, string>>({})
   const { data: games = [] } = useQuery({
     queryKey: ['ticker', 'today'],
     queryFn: getTodayTicker,
-    refetchInterval: 60_000,
+    refetchInterval: 300_000,
   })
 
   const rawItems = games.length > 0 ? buildItems(games) : []
-  const hasLiveGoal = rawItems.some(i => i.kind === 'game' && i.liveGoal)
+
+  const newGoal = (() => {
+    for (const game of games) {
+      const key = game.id
+      const cur = `${game.home_score}-${game.away_score}`
+      const prev = prevScores.current[key]
+      if (prev && cur !== prev) {
+        prevScores.current[key] = cur
+        return true
+      }
+      if (!prev) {
+        prevScores.current[key] = cur
+      }
+    }
+    return false
+  })()
+
   const allItems = rawItems.length > 0 ? rawItems : FALLBACK_ITEMS
 
   const ambientRows = allItems.slice(0, 6).map(i => (i.kind === 'game' ? `${teamCode(i.homeTeam)}/${teamCode(i.awayTeam)} ${i.details} ${i.status} GRUPO ${i.group}` : i.text))
@@ -118,7 +136,7 @@ export default function GameTicker() {
       </div>
       <div className="ticker-wrap py-2">
         <div className="ticker-track">
-          {hasLiveGoal && (
+          {newGoal && (
             <span className="ticker-goal-chant inline-flex items-center px-6 text-sm uppercase">
               CANTALOOOOOOOOO!!! CANTALOOOOOOOOO!!!
             </span>
