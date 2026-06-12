@@ -172,6 +172,12 @@ export default function GameTicker() {
     ? [...bannerItems, ...rawItems]
     : rawItems.length > 0 ? rawItems : FALLBACK_ITEMS
 
+  const chantItem = (goalFlashIds.current.size > 0 || chantActive) ? (
+    <span className="ticker-goal-chant inline-flex items-center px-6 text-sm uppercase">
+      CANTALOOOOOOOOO!!! CANTALOOOOOOOOO!!!
+    </span>
+  ) : null
+
   const ambientRows = allItems.slice(0, 6).map(i => (i.kind === 'game' ? `${i.homeTeam}/${i.awayTeam} ${i.details} ${i.status} GRUPO ${i.group}` : i.text))
 
   return (
@@ -184,13 +190,11 @@ export default function GameTicker() {
       <div className="ticker-wrap py-2">
         <div className="ticker-track">
           {allItems.map(item => <TickerSpan key={`${item.id}-0`} item={item} />)}
+          {chantItem}
           {allItems.map(item => <TickerSpan key={`${item.id}-1`} item={item} />)}
+          {chantItem}
           {allItems.map(item => <TickerSpan key={`${item.id}-2`} item={item} />)}
-          {(goalFlashIds.current.size > 0 || chantActive) && (
-            <span className="ticker-goal-chant inline-flex items-center px-6 text-sm uppercase">
-              CANTALOOOOOOOOO!!! CANTALOOOOOOOOO!!!
-            </span>
-          )}
+          {chantItem}
         </div>
       </div>
     </div>
