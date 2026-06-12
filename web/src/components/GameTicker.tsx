@@ -183,15 +183,15 @@ export default function GameTicker() {
       </div>
       <div className="ticker-wrap py-2">
         <div className="ticker-track">
-          {(goalFlashIds.current.size > 0 || chantActive) && (
-            <span className="ticker-goal-chant inline-flex items-center px-6 text-sm uppercase">
-              CANTALOOOOOOOOO!!! CANTALOOOOOOOOO!!!
-            </span>
-          )}
           {allItems.map(item => <TickerSpan key={`${item.id}-0`} item={item} />)}
           {allItems.map(item => <TickerSpan key={`${item.id}-1`} item={item} />)}
           {allItems.map(item => <TickerSpan key={`${item.id}-2`} item={item} />)}
         </div>
+        {(goalFlashIds.current.size > 0 || chantActive) && (
+          <div className="ticker-goal-chant">
+            <span>CANTALOOOOOOOOO!!! CANTALOOOOOOOOO!!!</span>
+          </div>
+        )}
       </div>
     </div>
   )
