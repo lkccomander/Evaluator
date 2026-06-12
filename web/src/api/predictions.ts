@@ -9,6 +9,8 @@ export interface Prediction {
   kickoff_utc: string
   home_score_pred: number
   away_score_pred: number
+  home_score: number | null
+  away_score: number | null
   points_earned: number | null
   goal_pts_earned: number | null
   locked: boolean

@@ -158,6 +158,8 @@ func (h *PredictionHandler) GetMy(w http.ResponseWriter, r *http.Request) {
 		KickoffUTC    time.Time  `json:"kickoff_utc"`
 		HomeScorePred int        `json:"home_score_pred"`
 		AwayScorePred int        `json:"away_score_pred"`
+		HomeScore     *int       `json:"home_score"`
+		AwayScore     *int       `json:"away_score"`
 		PointsEarned  *int       `json:"points_earned"`
 		GoalPtsEarned *int       `json:"goal_pts_earned"`
 		Locked        bool       `json:"locked"`
@@ -166,7 +168,8 @@ func (h *PredictionHandler) GetMy(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := h.DB.Query(r.Context(),
 		`SELECT p.id, m.id, m.match_number, m.home_team, m.away_team, m.kickoff_utc,
-		        p.home_score_pred, p.away_score_pred, p.points_earned, p.goal_pts_earned, p.submitted_at
+		        p.home_score_pred, p.away_score_pred, m.home_score, m.away_score,
+		        p.points_earned, p.goal_pts_earned, p.submitted_at
 		 FROM predictions p
 		 JOIN matches m ON m.id = p.match_id
 		 WHERE p.user_id = $1
@@ -183,7 +186,8 @@ func (h *PredictionHandler) GetMy(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var p predictionRow
 		if err := rows.Scan(&p.ID, &p.MatchID, &p.MatchNumber, &p.HomeTeam, &p.AwayTeam,
-			&p.KickoffUTC, &p.HomeScorePred, &p.AwayScorePred, &p.PointsEarned, &p.GoalPtsEarned, &p.SubmittedAt); err != nil {
+			&p.KickoffUTC, &p.HomeScorePred, &p.AwayScorePred, &p.HomeScore, &p.AwayScore,
+			&p.PointsEarned, &p.GoalPtsEarned, &p.SubmittedAt); err != nil {
 			respondError(w, http.StatusInternalServerError, "scan error")
 			return
 		}
