@@ -30,15 +30,6 @@ function itemClass(status: string) {
   return 'tick-up'
 }
 
-function teamCode(name: string) {
-  return name
-    .split(/\s+/)
-    .map(part => part[0] ?? '')
-    .join('')
-    .slice(0, 3)
-    .toUpperCase()
-}
-
 function buildItems(games: Awaited<ReturnType<typeof getTodayTicker>>): TickerItem[] {
   return games.map(game => {
     const kickoff = new Date(game.kickoff).toLocaleString('es-CR', {
@@ -83,11 +74,11 @@ function TickerSpan({ item }: { item: TickerItem }) {
       {item.kind === 'game' ? (
         <span>
           <span className="font-bold" style={{ color: teamColors[item.homeTeam] ?? '#fff' }}>
-            {teamCode(item.homeTeam)}
+            {item.homeTeam}
           </span>
           <span className="mx-1">/</span>
           <span className="font-bold" style={{ color: teamColors[item.awayTeam] ?? '#fff' }}>
-            {teamCode(item.awayTeam)}
+            {item.awayTeam}
           </span>
           <span className="ml-2">{item.details} {item.status.toUpperCase()} GRUPO {item.group}</span>
         </span>
@@ -140,7 +131,7 @@ export default function GameTicker() {
     ? [...bannerItems, ...rawItems]
     : rawItems.length > 0 ? rawItems : FALLBACK_ITEMS
 
-  const ambientRows = allItems.slice(0, 6).map(i => (i.kind === 'game' ? `${teamCode(i.homeTeam)}/${teamCode(i.awayTeam)} ${i.details} ${i.status} GRUPO ${i.group}` : i.text))
+  const ambientRows = allItems.slice(0, 6).map(i => (i.kind === 'game' ? `${i.homeTeam}/${i.awayTeam} ${i.details} ${i.status} GRUPO ${i.group}` : i.text))
 
   return (
     <div className="ticker-board border-b border-surface-border overflow-hidden">
