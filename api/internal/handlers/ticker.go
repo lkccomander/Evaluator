@@ -245,6 +245,7 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var apiRaw []apiGameEntry
+	var apiCached []apiGameEntry
 	var apiOK bool
 	var errMsg string
 
@@ -274,6 +275,29 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 				})
 			}
 		}
+
+		cachedGames, err := h.Provider.GetGames(r.Context())
+		if err == nil {
+			for _, g := range cachedGames {
+				home := g.HomeTeamNameEN
+				if home == "" {
+					home = g.HomeTeamLabel
+				}
+				away := g.AwayTeamNameEN
+				if away == "" {
+					away = g.AwayTeamLabel
+				}
+				apiCached = append(apiCached, apiGameEntry{
+					ID:          g.ID,
+					HomeTeam:    home,
+					AwayTeam:    away,
+					HomeScore:   g.HomeScore,
+					AwayScore:   g.AwayScore,
+					Finished:    g.Finished,
+					TimeElapsed: g.TimeElapsed,
+				})
+			}
+		}
 	}
 
 	dbMatches, err := h.queryTodayMatches(r.Context(), todayStart, todayEnd)
@@ -282,7 +306,49 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	rawMatches := make([]dbMatch, len(dbMatches))
+	copy(rawMatches, dbMatches)
+
 	h.mergeAPIScores(r.Context(), dbMatches)
+
+	type mergeDebugEntry struct {
+		ID         string `json:"id"`
+		HomeTeamDB string `json:"home_team_db"`
+		DBScore    string `json:"db_score"`
+		APIFound   bool   `json:"api_found"`
+		APIScore   string `json:"api_score"`
+		APIStatus  string `json:"api_status"`
+	}
+
+	var mergeDebug []mergeDebugEntry
+	if h.Provider != nil && h.Provider.Enabled() {
+		apiGames, err := h.Provider.GetGames(r.Context())
+		if err == nil {
+			apiByES := make(map[string]services.WorldCup26Game)
+			for _, g := range apiGames {
+				en := teamDisplayName(g.HomeTeamNameEN, g.HomeTeamLabel)
+				apiByES[en] = g
+			}
+			for _, m := range rawMatches {
+				entry := mergeDebugEntry{
+					ID:         m.ID.String(),
+					HomeTeamDB: m.HomeTeam,
+					DBScore:    fmt.Sprintf("%d-%d", ptrOrZero(m.HomeScore), ptrOrZero(m.AwayScore)),
+				}
+				for en, es := range enToEs {
+					if es == m.HomeTeam {
+						if g, ok := apiByES[en]; ok {
+							entry.APIFound = true
+							entry.APIScore = g.HomeScore + "-" + g.AwayScore
+							entry.APIStatus = tickerStatus(g.Finished, g.TimeElapsed)
+						}
+						break
+					}
+				}
+				mergeDebug = append(mergeDebug, entry)
+			}
+		}
+	}
 
 	tickerEntries := h.buildTickerEntries(dbMatches)
 	sort.Slice(tickerEntries, func(i, j int) bool {
@@ -291,11 +357,20 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, http.StatusOK, map[string]any{
 		"api_raw":        apiRaw,
+		"api_cached":     apiCached,
 		"api_ok":         apiOK,
 		"api_error":      errMsg,
+		"merge_debug":    mergeDebug,
 		"ticker_entries": tickerEntries,
 		"today_cr":       todayStart.Format("2006-01-02"),
 	})
+}
+
+func ptrOrZero(p *int) int {
+	if p == nil {
+		return 0
+	}
+	return *p
 }
 
 func scorePtr(s string) *int {
