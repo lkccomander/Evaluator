@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getMatches, enterResult, updateLiveScore } from '../api/matches'
+import { getBannerMessage, setBannerMessage } from '../api/banner'
 import { TeamName } from '../components/TeamFlag'
 
 const crDateFormatter = new Intl.DateTimeFormat('en-CA', {
@@ -48,9 +49,44 @@ export default function AdminResults() {
     }))
   }
 
+ const { data: banner, isLoading: bannerLoading } = useQuery({
+    queryKey: ['banner'],
+    queryFn: getBannerMessage,
+  })
+
+  const [bannerText, setBannerText] = useState('')
+
+  const bannerMut = useMutation({
+    mutationFn: (msg: string) => setBannerMessage(msg),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['banner'] })
+    },
+  })
+
   return (
     <div>
       <h1 className="text-lg font-bold mb-4">Admin - Resultados</h1>
+
+      <div className="bg-surface-card border border-surface-border rounded-lg px-4 py-3 mb-6">
+        <h2 className="text-sm font-semibold mb-2">Mensaje del banner</h2>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={bannerText}
+            onChange={e => setBannerText(e.target.value)}
+            placeholder={bannerLoading ? 'Cargando...' : banner?.message || 'Escribe un mensaje para el banner...'}
+            className="flex-1 bg-surface border border-surface-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gold"
+          />
+          <button
+            onClick={() => bannerMut.mutate(bannerText)}
+            disabled={bannerMut.isPending || !bannerText.trim()}
+            className="bg-gold text-black font-semibold px-4 py-2 rounded text-sm disabled:opacity-50 hover:bg-gold-dark transition-colors"
+          >
+            {bannerMut.isPending ? '...' : 'Publicar'}
+          </button>
+        </div>
+      </div>
+
       <div className="grid gap-2">
         {todaysMatches.map(m => {
           const sc = scores[m.id] ?? {

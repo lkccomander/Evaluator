@@ -45,6 +45,7 @@ func main() {
 	leaderH := &handlers.LeaderboardHandler{DB: pool}
 	userH := &handlers.UserHandler{DB: pool}
 	tickerH := &handlers.TickerHandler{Provider: worldCup26Client, TZ: cfg.CostaRicaTZ}
+	bannerH := &handlers.BannerHandler{DB: pool}
 
 	r := chi.NewRouter()
 
@@ -61,6 +62,16 @@ func main() {
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/ticker/today", tickerH.Today)
+
+		r.Group(func(r chi.Router) {
+			r.Get("/banner", bannerH.GetMessage)
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(authSvc))
+			r.Use(middleware.Admin)
+			r.Post("/banner", bannerH.SetMessage)
+		})
 
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/register", authH.Register)
