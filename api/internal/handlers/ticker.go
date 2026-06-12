@@ -174,22 +174,17 @@ func (h *TickerHandler) mergeAPIScores(ctx context.Context, dbMatches []dbMatch)
 		return
 	}
 
-	apiByES := make(map[string]services.WorldCup26Game)
+	apiByEN := make(map[string]services.WorldCup26Game)
 	for _, g := range apiGames {
 		en := teamDisplayName(g.HomeTeamNameEN, g.HomeTeamLabel)
-		apiByES[en] = g
+		apiByEN[en] = g
 	}
 
 	for i, m := range dbMatches {
-		for en, es := range enToEs {
-			if es == m.HomeTeam {
-				if g, ok := apiByES[en]; ok {
-					dbMatches[i].HomeScore = scorePtr(g.HomeScore)
-					dbMatches[i].AwayScore = scorePtr(g.AwayScore)
-					dbMatches[i].Status = tickerStatus(g.Finished, g.TimeElapsed)
-				}
-				break
-			}
+		if g, ok := apiByEN[m.HomeTeam]; ok {
+			dbMatches[i].HomeScore = scorePtr(g.HomeScore)
+			dbMatches[i].AwayScore = scorePtr(g.AwayScore)
+			dbMatches[i].Status = tickerStatus(g.Finished, g.TimeElapsed)
 		}
 	}
 }
@@ -324,10 +319,10 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 	if h.Provider != nil && h.Provider.Enabled() {
 		apiGames, err := h.Provider.GetGames(r.Context())
 		if err == nil {
-			apiByES := make(map[string]services.WorldCup26Game)
+			apiByEN := make(map[string]services.WorldCup26Game)
 			for _, g := range apiGames {
 				en := teamDisplayName(g.HomeTeamNameEN, g.HomeTeamLabel)
-				apiByES[en] = g
+				apiByEN[en] = g
 			}
 			for _, m := range rawMatches {
 				entry := mergeDebugEntry{
@@ -335,15 +330,10 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 					HomeTeamDB: m.HomeTeam,
 					DBScore:    fmt.Sprintf("%d-%d", ptrOrZero(m.HomeScore), ptrOrZero(m.AwayScore)),
 				}
-				for en, es := range enToEs {
-					if es == m.HomeTeam {
-						if g, ok := apiByES[en]; ok {
-							entry.APIFound = true
-							entry.APIScore = g.HomeScore + "-" + g.AwayScore
-							entry.APIStatus = tickerStatus(g.Finished, g.TimeElapsed)
-						}
-						break
-					}
+				if g, ok := apiByEN[m.HomeTeam]; ok {
+					entry.APIFound = true
+					entry.APIScore = g.HomeScore + "-" + g.AwayScore
+					entry.APIStatus = tickerStatus(g.Finished, g.TimeElapsed)
 				}
 				mergeDebug = append(mergeDebug, entry)
 			}
