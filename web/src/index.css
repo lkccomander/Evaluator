@@ -129,17 +129,14 @@ input[type="number"] {
 
 .tick-up {
   color: #00e676;
-  text-shadow: 0 0 8px rgba(0, 230, 118, 0.66), 0 0 16px rgba(0, 230, 118, 0.28);
 }
 
 .tick-down {
   color: #ff1744;
-  text-shadow: 0 0 8px rgba(255, 23, 68, 0.66), 0 0 16px rgba(255, 23, 68, 0.28);
 }
 
 .tick-flat {
   color: #f3f4f6;
-  text-shadow: 0 0 6px rgba(255, 255, 255, 0.14);
 }
 
 .ticker-goal-chant {
