@@ -65,13 +65,21 @@ export default function AdminBannerConfig() {
     <div>
       <h1 className="text-lg font-bold mb-4">Configuración del Banner</h1>
 
-      <button
-        onClick={fetchDebug}
-        disabled={loading}
-        className="bg-gold text-black font-semibold px-5 py-2.5 rounded text-sm disabled:opacity-50 hover:bg-gold-dark transition-colors mb-6"
-      >
-        {loading ? 'Consultando…' : 'Solicitar info del API'}
-      </button>
+      <div className="flex gap-3 mb-6">
+        <button
+          onClick={fetchDebug}
+          disabled={loading}
+          className="bg-gold text-black font-semibold px-5 py-2.5 rounded text-sm disabled:opacity-50 hover:bg-gold-dark transition-colors"
+        >
+          {loading ? 'Consultando…' : 'Solicitar info del API'}
+        </button>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('opencode-goal'))}
+          className="bg-error text-white font-semibold px-5 py-2.5 rounded text-sm hover:opacity-90 transition-colors"
+        >
+          ⚽ Simular gol
+        </button>
+      </div>
 
       {error && (
         <div className="bg-surface-card border border-surface-border rounded-lg px-4 py-3 mb-6">

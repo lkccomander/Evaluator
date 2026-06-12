@@ -136,6 +136,27 @@ export default function GameTicker() {
     }
   }, [games])
 
+  // Listen for manual goal trigger from admin
+  useEffect(() => {
+    const handler = () => {
+      const liveIds = new Set<string | number>()
+      for (const game of games) {
+        if (game.status === 'En juego') {
+          liveIds.add(game.id)
+        }
+      }
+      if (liveIds.size === 0) return
+      goalFlashIds.current = liveIds
+      forceRender(n => n + 1)
+      setTimeout(() => {
+        goalFlashIds.current = new Set()
+        forceRender(n => n + 1)
+      }, 3000)
+    }
+    window.addEventListener('opencode-goal', handler)
+    return () => window.removeEventListener('opencode-goal', handler)
+  }, [games])
+
   const rawItems = games.length > 0 ? buildItems(games, goalFlashIds.current) : []
 
   const bannerItems: TickerItem[] = banners.map(b => ({
