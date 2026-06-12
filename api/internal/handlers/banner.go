@@ -18,25 +18,36 @@ type BannerHandler struct {
 type bannerResponse struct {
 	ID        uuid.UUID `json:"id"`
 	Message   string    `json:"message"`
+	CreatedBy uuid.UUID `json:"created_by"`
 	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
-func (h *BannerHandler) GetMessage(w http.ResponseWriter, r *http.Request) {
-	var res bannerResponse
-	err := h.DB.QueryRow(r.Context(),
-		`SELECT id, message, created_at
+func (h *BannerHandler) ListMessages(w http.ResponseWriter, r *http.Request) {
+	rows, err := h.DB.Query(r.Context(),
+		`SELECT id, message, created_by, created_at, expires_at
 		   FROM banner_messages
-		  ORDER BY created_at DESC
-		  LIMIT 1`,
-	).Scan(&res.ID, &res.Message, &res.CreatedAt)
+		  WHERE expires_at IS NULL OR expires_at > NOW()
+		  ORDER BY created_at DESC`,
+	)
 	if err != nil {
-		respondJSON(w, http.StatusOK, bannerResponse{})
+		respondJSON(w, http.StatusOK, []bannerResponse{})
 		return
 	}
-	respondJSON(w, http.StatusOK, res)
+	defer rows.Close()
+
+	messages := make([]bannerResponse, 0)
+	for rows.Next() {
+		var m bannerResponse
+		if err := rows.Scan(&m.ID, &m.Message, &m.CreatedBy, &m.CreatedAt, &m.ExpiresAt); err != nil {
+			continue
+		}
+		messages = append(messages, m)
+	}
+	respondJSON(w, http.StatusOK, messages)
 }
 
-func (h *BannerHandler) SetMessage(w http.ResponseWriter, r *http.Request) {
+func (h *BannerHandler) PostMessage(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Message string `json:"message"`
 	}
@@ -51,34 +62,37 @@ func (h *BannerHandler) SetMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx, err := h.DB.Begin(r.Context())
+	if req.Message == "" {
+		respondError(w, http.StatusBadRequest, "message is required")
+		return
+	}
+
+	var activeCount int
+	err := h.DB.QueryRow(r.Context(),
+		`SELECT COUNT(*) FROM banner_messages
+		  WHERE created_by = $1 AND (expires_at IS NULL OR expires_at > NOW())`,
+		userID,
+	).Scan(&activeCount)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "database error")
 		return
 	}
-	defer tx.Rollback(r.Context())
-
-	if _, err := tx.Exec(r.Context(), "DELETE FROM banner_messages"); err != nil {
-		respondError(w, http.StatusInternalServerError, "database error")
+	if activeCount > 0 {
+		respondError(w, http.StatusConflict, "ya tienes un mensaje activo. Espera a que expire (3h) para publicar otro.")
 		return
 	}
 
 	var res bannerResponse
-	err = tx.QueryRow(r.Context(),
-		`INSERT INTO banner_messages (message, created_by)
-		 VALUES ($1, $2)
-		 RETURNING id, message, created_at`,
+	err = h.DB.QueryRow(r.Context(),
+		`INSERT INTO banner_messages (message, created_by, expires_at)
+		 VALUES ($1, $2, NOW() + INTERVAL '3 hours')
+		 RETURNING id, message, created_by, created_at, expires_at`,
 		req.Message, userID,
-	).Scan(&res.ID, &res.Message, &res.CreatedAt)
+	).Scan(&res.ID, &res.Message, &res.CreatedBy, &res.CreatedAt, &res.ExpiresAt)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "failed to save message")
 		return
 	}
 
-	if err := tx.Commit(r.Context()); err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to save message")
-		return
-	}
-
-	respondJSON(w, http.StatusOK, res)
+	respondJSON(w, http.StatusCreated, res)
 }

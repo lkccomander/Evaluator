@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getTodayTicker } from '../api/ticker'
-import { getBannerMessage } from '../api/banner'
+import { getBannerMessages } from '../api/banner'
 import { teamColors } from '../lib/teamColors'
 
 type TickerGame = {
@@ -105,9 +105,9 @@ export default function GameTicker() {
     queryFn: getTodayTicker,
     refetchInterval: 300_000,
   })
-  const { data: banner } = useQuery({
+  const { data: banners = [] } = useQuery({
     queryKey: ['banner'],
-    queryFn: getBannerMessage,
+    queryFn: getBannerMessages,
     refetchInterval: 300_000,
   })
 
@@ -129,12 +129,16 @@ export default function GameTicker() {
     return false
   })()
 
-  const bannerItem: TickerItem | null =
-    banner?.message
-      ? { kind: 'fallback', id: 'banner', text: banner.message, status: 'flat' }
-      : null
+  const bannerItems: TickerItem[] = banners.map(b => ({
+    kind: 'fallback' as const,
+    id: `banner-${b.id}`,
+    text: b.message,
+    status: 'flat' as const,
+  }))
 
-  const allItems = bannerItem ? [bannerItem, ...rawItems] : rawItems.length > 0 ? rawItems : FALLBACK_ITEMS
+  const allItems = bannerItems.length > 0
+    ? [...bannerItems, ...rawItems]
+    : rawItems.length > 0 ? rawItems : FALLBACK_ITEMS
 
   const ambientRows = allItems.slice(0, 6).map(i => (i.kind === 'game' ? `${teamCode(i.homeTeam)}/${teamCode(i.awayTeam)} ${i.details} ${i.status} GRUPO ${i.group}` : i.text))
 

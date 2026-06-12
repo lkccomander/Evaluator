@@ -1,0 +1,1 @@
+ALTER TABLE banner_messages ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;

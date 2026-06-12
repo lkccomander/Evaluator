@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getGlobalLeaderboard, getMyLeagueLeaderboard } from '../api/leaderboard'
 import { listLeagues } from '../api/leagues'
 import { getLeagueLeaderboard } from '../api/leaderboard'
+import { getBannerMessages, postBannerMessage } from '../api/banner'
 import { useAuth } from '../hooks/useAuth'
 import LeaderboardTable from '../components/LeaderboardTable'
 
@@ -193,6 +194,68 @@ function renderRulesMarkdown(markdown: string) {
   return elements
 }
 
+function BannerMessageSection() {
+  const { user } = useAuth()
+  const qc = useQueryClient()
+  const [text, setText] = useState('')
+  const [success, setSuccess] = useState(false)
+
+  const { data: banners = [] } = useQuery({
+    queryKey: ['banner'],
+    queryFn: getBannerMessages,
+    refetchInterval: 60_000,
+  })
+
+  const myMessage = banners.find(b => b.created_by === user?.id)
+
+  const mut = useMutation({
+    mutationFn: (msg: string) => postBannerMessage(msg),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['banner'] })
+      setText('')
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+    },
+  })
+
+  return (
+    <section className="mt-6 rounded-[28px] border border-surface-border bg-[linear-gradient(180deg,rgba(26,26,26,0.98),rgba(15,15,15,0.98))] shadow-[0_24px_80px_rgba(0,0,0,0.35)] p-5 md:p-6">
+      <h2 className="text-sm font-semibold uppercase tracking-[0.22em] text-gold mb-4">Mensaje en el banner</h2>
+      {myMessage ? (
+        <div>
+          <p className="text-sm text-slate-300 mb-2">
+            Tu mensaje activo: <span className="text-white font-semibold">&ldquo;{myMessage.message}&rdquo;</span>
+          </p>
+          <p className="text-xs text-muted">
+            Expira en 3 horas desde su publicación. Después podrás publicar otro.
+          </p>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder="Escribe un mensaje para el banner (max 3h)..."
+            className="flex-1 bg-surface border border-surface-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gold"
+          />
+          <button
+            onClick={() => mut.mutate(text)}
+            disabled={mut.isPending || !text.trim()}
+            className="bg-gold text-black font-semibold px-4 py-2 rounded text-sm disabled:opacity-50 hover:bg-gold-dark transition-colors min-h-[44px]"
+          >
+            {mut.isPending ? '...' : 'Publicar'}
+          </button>
+          {success && <span className="text-green-500 text-sm font-semibold">Mensaje publicado</span>}
+        </div>
+      )}
+      {mut.isError && (
+        <p className="mt-2 text-error text-xs">{(mut.error as Error)?.message || 'Error al publicar'}</p>
+      )}
+    </section>
+  )
+}
+
 export default function Leaderboard() {
   const { user, isAdmin } = useAuth()
   const [view, setView] = useState<'global' | 'league'>(isAdmin ? 'global' : 'league')
@@ -325,6 +388,8 @@ export default function Leaderboard() {
           Esta marca indica que el jugador esta verificado en la quiniela.
         </p>
       </div>
+
+      <BannerMessageSection />
       <section className="mt-6 rounded-[28px] border border-surface-border bg-[linear-gradient(180deg,rgba(26,26,26,0.98),rgba(15,15,15,0.98))] shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
         <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between md:p-6">
           <button

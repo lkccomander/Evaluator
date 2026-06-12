@@ -63,14 +63,11 @@ func main() {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/ticker/today", tickerH.Today)
 
-		r.Group(func(r chi.Router) {
-			r.Get("/banner", bannerH.GetMessage)
-		})
+		r.Get("/banner", bannerH.ListMessages)
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(authSvc))
-			r.Use(middleware.Admin)
-			r.Post("/banner", bannerH.SetMessage)
+			r.Post("/banner", bannerH.PostMessage)
 		})
 
 		r.Route("/auth", func(r chi.Router) {

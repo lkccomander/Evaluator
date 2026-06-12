@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getMatches, enterResult, updateLiveScore } from '../api/matches'
-import { getBannerMessage, setBannerMessage } from '../api/banner'
+import { getBannerMessages, postBannerMessage } from '../api/banner'
 import { TeamName } from '../components/TeamFlag'
 
 const crDateFormatter = new Intl.DateTimeFormat('en-CA', {
@@ -49,16 +49,18 @@ export default function AdminResults() {
     }))
   }
 
- const { data: banner, isLoading: bannerLoading } = useQuery({
+  const { data: banners = [] } = useQuery({
     queryKey: ['banner'],
-    queryFn: getBannerMessage,
+    queryFn: getBannerMessages,
   })
+
+  const banner = banners[0]
 
   const [bannerText, setBannerText] = useState('')
   const [bannerSuccess, setBannerSuccess] = useState(false)
 
   const bannerMut = useMutation({
-    mutationFn: (msg: string) => setBannerMessage(msg),
+    mutationFn: (msg: string) => postBannerMessage(msg),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['banner'] })
       setBannerSuccess(true)
@@ -77,7 +79,7 @@ export default function AdminResults() {
             type="text"
             value={bannerText}
             onChange={e => setBannerText(e.target.value)}
-            placeholder={bannerLoading ? 'Cargando...' : banner?.message || 'Escribe un mensaje para el banner...'}
+            placeholder={banner?.message || 'Escribe un mensaje para el banner...'}
             className="flex-1 bg-surface border border-surface-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gold"
           />
           <button
