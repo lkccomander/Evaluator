@@ -21,12 +21,12 @@ func ScoreMatch(ctx context.Context, db *pgxpool.Pool, matchID string) (*Scoring
 
 	var homeScore, awayScore int
 	err = tx.QueryRow(ctx,
-		"SELECT home_score, away_score FROM matches WHERE id = $1 AND status = 'finished'",
+		"SELECT home_score, away_score FROM matches WHERE id = $1 AND home_score IS NOT NULL AND away_score IS NOT NULL",
 		matchID,
 	).Scan(&homeScore, &awayScore)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, fmt.Errorf("match not found or not yet finished")
+			return nil, fmt.Errorf("match not found or score not yet entered")
 		}
 		return nil, fmt.Errorf("query match: %w", err)
 	}
@@ -34,7 +34,7 @@ func ScoreMatch(ctx context.Context, db *pgxpool.Pool, matchID string) (*Scoring
 	actualOutcome := sign(homeScore - awayScore)
 
 	rows, err := tx.Query(ctx,
-		"SELECT id, home_score_pred, away_score_pred FROM predictions WHERE match_id = $1 AND points_earned IS NULL",
+		"SELECT id, home_score_pred, away_score_pred FROM predictions WHERE match_id = $1",
 		matchID,
 	)
 	if err != nil {
@@ -43,7 +43,7 @@ func ScoreMatch(ctx context.Context, db *pgxpool.Pool, matchID string) (*Scoring
 	defer rows.Close()
 
 	type pred struct {
-		ID            string
+		ID                 string
 		HomePred, AwayPred int
 	}
 
@@ -62,7 +62,7 @@ func ScoreMatch(ctx context.Context, db *pgxpool.Pool, matchID string) (*Scoring
 
 		if p.HomePred == homeScore && p.AwayPred == awayScore {
 			points = 5
-			goalPts = homeScore + awayScore
+			goalPts = max(1, homeScore) + max(1, awayScore)
 		} else if sign(p.HomePred-p.AwayPred) == actualOutcome {
 			points = 3
 			switch {

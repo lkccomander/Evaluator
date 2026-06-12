@@ -4,6 +4,8 @@ export interface LeaderboardEntry {
   user_id: string
   display_name: string | null
   player_team_name: string
+  is_verified: boolean
+  is_disabled: boolean
   league_name: string | null
   total_points: number
   total_goal_pts: number
@@ -13,7 +15,7 @@ export interface LeaderboardEntry {
 }
 
 export function getGlobalLeaderboard() {
-  return request<LeaderboardEntry[]>('/leaderboard/global')
+  return request<LeaderboardEntry[]>('/leaderboard/global', { token: authToken()! })
 }
 
 export function getLeagueLeaderboard(leagueId: string) {

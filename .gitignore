@@ -25,3 +25,8 @@ quiniela2026.code-workspace
 
 # Temp
 railwainit.ps1
+.obsidian/workspace.json
+.obsidian/cache
+
+# Generated graph artifacts
+graphify-out/

@@ -15,6 +15,8 @@ export interface User {
   display_name: string | null
   league_id: string | null
   is_admin: boolean
+  is_verified: boolean
+  is_disabled: boolean
   created_at: string
 }
 

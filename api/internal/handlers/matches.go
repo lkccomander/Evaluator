@@ -31,18 +31,18 @@ func (h *MatchHandler) List(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	type matchResponse struct {
-		ID          uuid.UUID  `json:"id"`
-		MatchNumber int        `json:"match_number"`
-		Stage       string     `json:"stage"`
-		GroupName   *string    `json:"group_name"`
-		KickoffUTC  time.Time  `json:"kickoff_utc"`
-		HomeTeam    string     `json:"home_team"`
-		AwayTeam    string     `json:"away_team"`
-		HomeScore   *int       `json:"home_score"`
-		AwayScore   *int       `json:"away_score"`
-		Status      string     `json:"status"`
-		Deadline    time.Time  `json:"deadline"`
-		Locked      bool       `json:"locked"`
+		ID          uuid.UUID `json:"id"`
+		MatchNumber int       `json:"match_number"`
+		Stage       string    `json:"stage"`
+		GroupName   *string   `json:"group_name"`
+		KickoffUTC  time.Time `json:"kickoff_utc"`
+		HomeTeam    string    `json:"home_team"`
+		AwayTeam    string    `json:"away_team"`
+		HomeScore   *int      `json:"home_score"`
+		AwayScore   *int      `json:"away_score"`
+		Status      string    `json:"status"`
+		Deadline    time.Time `json:"deadline"`
+		Locked      bool      `json:"locked"`
 	}
 
 	var matches []matchResponse
@@ -74,18 +74,18 @@ func (h *MatchHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var m struct {
-		ID          uuid.UUID  `json:"id"`
-		MatchNumber int        `json:"match_number"`
-		Stage       string     `json:"stage"`
-		GroupName   *string    `json:"group_name"`
-		KickoffUTC  time.Time  `json:"kickoff_utc"`
-		HomeTeam    string     `json:"home_team"`
-		AwayTeam    string     `json:"away_team"`
-		HomeScore   *int       `json:"home_score"`
-		AwayScore   *int       `json:"away_score"`
-		Status      string     `json:"status"`
-		Deadline    time.Time  `json:"deadline"`
-		Locked      bool       `json:"locked"`
+		ID          uuid.UUID `json:"id"`
+		MatchNumber int       `json:"match_number"`
+		Stage       string    `json:"stage"`
+		GroupName   *string   `json:"group_name"`
+		KickoffUTC  time.Time `json:"kickoff_utc"`
+		HomeTeam    string    `json:"home_team"`
+		AwayTeam    string    `json:"away_team"`
+		HomeScore   *int      `json:"home_score"`
+		AwayScore   *int      `json:"away_score"`
+		Status      string    `json:"status"`
+		Deadline    time.Time `json:"deadline"`
+		Locked      bool      `json:"locked"`
 	}
 	err = h.DB.QueryRow(r.Context(),
 		`SELECT id, match_number, stage, group_name, kickoff_utc, home_team, away_team,
@@ -113,7 +113,7 @@ type enterResultRequest struct {
 	AwayScore int `json:"away_score"`
 }
 
-func (h *MatchHandler) EnterResult(w http.ResponseWriter, r *http.Request) {
+func (h *MatchHandler) UpdateLiveScore(w http.ResponseWriter, r *http.Request) {
 	matchIDStr := chi.URLParam(r, "id")
 	matchID, err := uuid.Parse(matchIDStr)
 	if err != nil {
@@ -132,8 +132,67 @@ func (h *MatchHandler) EnterResult(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tag, err := h.DB.Exec(r.Context(),
-		`UPDATE matches SET home_score = $1, away_score = $2, status = 'finished', updated_at = NOW()
+		`UPDATE matches
+		 SET home_score = $1, away_score = $2, updated_at = NOW()
 		 WHERE id = $3 AND status != 'finished'`,
+		req.HomeScore, req.AwayScore, matchID,
+	)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to update live score")
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		respondError(w, http.StatusConflict, "match already finished or not found")
+		return
+	}
+
+	result, err := services.ScoreMatch(r.Context(), h.DB, matchID.String())
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "live scoring job failed: "+err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message":             "live score saved and predictions scored",
+		"predictions_updated": result.PredictionsUpdated,
+	})
+}
+
+func (h *MatchHandler) EnterResult(w http.ResponseWriter, r *http.Request) {
+	matchIDStr := chi.URLParam(r, "id")
+	matchID, err := uuid.Parse(matchIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid match id")
+		return
+	}
+
+	var req enterResultRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.HomeScore < 0 || req.AwayScore < 0 {
+		respondError(w, http.StatusBadRequest, "scores must be non-negative")
+		return
+	}
+
+	var currentStatus string
+	if err := h.DB.QueryRow(r.Context(), "SELECT status FROM matches WHERE id = $1", matchID).Scan(&currentStatus); err != nil {
+		if err == pgx.ErrNoRows {
+			respondError(w, http.StatusNotFound, "match not found")
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "database error")
+		return
+	}
+	if currentStatus == "finished" {
+		respondError(w, http.StatusConflict, "match already has a result")
+		return
+	}
+
+	tag, err := h.DB.Exec(r.Context(),
+		`UPDATE matches SET home_score = $1, away_score = $2, status = 'finished', updated_at = NOW()
+		 WHERE id = $3`,
 		req.HomeScore, req.AwayScore, matchID,
 	)
 	if err != nil {
@@ -141,7 +200,7 @@ func (h *MatchHandler) EnterResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if tag.RowsAffected() == 0 {
-		respondError(w, http.StatusConflict, "match already has a result or not found")
+		respondError(w, http.StatusConflict, "match not found")
 		return
 	}
 
@@ -152,7 +211,7 @@ func (h *MatchHandler) EnterResult(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"message":              "result entered and predictions scored",
-		"predictions_updated":  result.PredictionsUpdated,
+		"message":             "result entered and predictions scored",
+		"predictions_updated": result.PredictionsUpdated,
 	})
 }

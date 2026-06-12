@@ -33,11 +33,26 @@ export default function Register() {
       <div className="bg-surface-card border border-surface-border rounded-lg p-8 w-full max-w-sm">
         <h1 className="text-xl font-bold text-gold mb-6 text-center">Registrarse</h1>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <input value={form.username} onChange={update('username')} placeholder="Username" className="bg-surface border border-surface-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gold" required />
-          <input type="email" value={form.email} onChange={update('email')} placeholder="Email" className="bg-surface border border-surface-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gold" required />
-          <input type="password" value={form.password} onChange={update('password')} placeholder="Contraseña" className="bg-surface border border-surface-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gold" required />
-          <input value={form.player_team_name} onChange={update('player_team_name')} placeholder="Nombre de equipo" className="bg-surface border border-surface-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gold" required />
-          <input value={form.league_code} onChange={update('league_code')} placeholder="Código de liga (opcional)" className="bg-surface border border-surface-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gold" maxLength={9} />
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-slate-300">Username</span>
+            <input value={form.username} onChange={update('username')} placeholder="Username" className="bg-surface border border-surface-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gold" required />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-slate-300">Email</span>
+            <input type="email" value={form.email} onChange={update('email')} placeholder="Email" className="bg-surface border border-surface-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gold" required />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-slate-300">Contraseña</span>
+            <input type="password" value={form.password} onChange={update('password')} placeholder="Contraseña" className="bg-surface border border-surface-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gold" required />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-slate-300">Nombre del equipo</span>
+            <input value={form.player_team_name} onChange={update('player_team_name')} placeholder="Nombre de equipo" className="bg-surface border border-surface-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gold" required />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-slate-300">Código de liga</span>
+            <input value={form.league_code} onChange={update('league_code')} placeholder="Código de liga (opcional)" className="bg-surface border border-surface-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-gold" maxLength={9} />
+          </label>
           {error && <p className="text-error text-xs">{error}</p>}
           <button type="submit" className="bg-gold text-black font-semibold py-2 rounded text-sm hover:bg-gold-dark transition-colors">Registrarse</button>
         </form>

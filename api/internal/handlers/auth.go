@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,8 +15,8 @@ import (
 )
 
 type AuthHandler struct {
-	DB       *pgxpool.Pool
-	AuthSvc  *auth.Service
+	DB      *pgxpool.Pool
+	AuthSvc *auth.Service
 }
 
 type registerRequest struct {
@@ -52,6 +53,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, "username, email, password, and player_team_name are required")
 		return
 	}
+	req.Username = strings.TrimSpace(req.Username)
+	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
+	req.PlayerTeamName = strings.TrimSpace(req.PlayerTeamName)
 
 	hash, err := auth.HashPassword(req.Password)
 	if err != nil {
@@ -117,16 +121,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, "email and password are required")
 		return
 	}
+	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
 
 	var user struct {
 		ID           uuid.UUID
 		PasswordHash string
 		IsAdmin      bool
+		IsDisabled   bool
 	}
 	err := h.DB.QueryRow(r.Context(),
-		"SELECT id, password_hash, is_admin FROM users WHERE email = $1",
+		"SELECT id, password_hash, is_admin, is_disabled FROM users WHERE email = $1",
 		req.Email,
-	).Scan(&user.ID, &user.PasswordHash, &user.IsAdmin)
+	).Scan(&user.ID, &user.PasswordHash, &user.IsAdmin, &user.IsDisabled)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			respondError(w, http.StatusUnauthorized, "invalid email or password")
@@ -138,6 +144,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	if !auth.CheckPassword(req.Password, user.PasswordHash) {
 		respondError(w, http.StatusUnauthorized, "invalid email or password")
+		return
+	}
+	if user.IsDisabled {
+		respondError(w, http.StatusForbidden, "user is disabled")
 		return
 	}
 
@@ -197,9 +207,14 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var isAdmin bool
-	err = h.DB.QueryRow(r.Context(), "SELECT is_admin FROM users WHERE id = $1", userID).Scan(&isAdmin)
+	var isDisabled bool
+	err = h.DB.QueryRow(r.Context(), "SELECT is_admin, is_disabled FROM users WHERE id = $1", userID).Scan(&isAdmin, &isDisabled)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "database error")
+		return
+	}
+	if isDisabled {
+		respondError(w, http.StatusForbidden, "user is disabled")
 		return
 	}
 
@@ -229,14 +244,20 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		DisplayName    *string    `json:"display_name"`
 		LeagueID       *uuid.UUID `json:"league_id"`
 		IsAdmin        bool       `json:"is_admin"`
+		IsVerified     bool       `json:"is_verified"`
+		IsDisabled     bool       `json:"is_disabled"`
 		CreatedAt      time.Time  `json:"created_at"`
 	}
 	err := h.DB.QueryRow(r.Context(),
-		`SELECT id, username, email, player_team_name, display_name, league_id, is_admin, created_at
+		`SELECT id, username, email, player_team_name, display_name, league_id, is_admin, is_verified, is_disabled, created_at
 		 FROM users WHERE id = $1`, userID,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.PlayerTeamName, &user.DisplayName, &user.LeagueID, &user.IsAdmin, &user.CreatedAt)
+	).Scan(&user.ID, &user.Username, &user.Email, &user.PlayerTeamName, &user.DisplayName, &user.LeagueID, &user.IsAdmin, &user.IsVerified, &user.IsDisabled, &user.CreatedAt)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "user not found")
+		return
+	}
+	if user.IsDisabled {
+		respondError(w, http.StatusForbidden, "user is disabled")
 		return
 	}
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Match } from '../api/matches'
 import { submitPrediction } from '../api/predictions'
 import Countdown from './Countdown'
@@ -18,7 +18,29 @@ export default function MatchCard({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    setHome(userPrediction?.home?.toString() ?? '')
+    setAway(userPrediction?.away?.toString() ?? '')
+  }, [match.id, userPrediction?.home, userPrediction?.away])
+
   const canPredict = userHasLeague && !match.locked && match.status === 'upcoming'
+  const msUntilKickoff = new Date(match.kickoff_utc).getTime() - Date.now()
+  const hasStarted = msUntilKickoff <= 0
+  const statusDotClass = msUntilKickoff <= 15 * 60 * 1000
+    ? 'bg-error'
+    : msUntilKickoff <= 30 * 60 * 1000
+      ? 'bg-yellow-400'
+      : 'bg-green-500'
+  const statusLabel = msUntilKickoff <= 15 * 60 * 1000
+    ? 'Cierra en 15 minutos o menos'
+    : msUntilKickoff <= 30 * 60 * 1000
+      ? 'Faltan 30 minutos o menos'
+      : 'Disponible para pronóstico'
+  const matchStateLabel = match.status === 'finished'
+    ? 'Finalizado'
+    : hasStarted
+      ? 'En juego'
+      : 'Programado'
 
   const handleSave = async () => {
     if (!canPredict) return
@@ -84,15 +106,37 @@ export default function MatchCard({
         <div className="flex-1 font-medium text-sm min-w-0"><TeamName name={match.away_team} /></div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <Countdown targetUTC={match.deadline} />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-block h-3 w-3 rounded-full ${statusDotClass}`}
+            title={statusLabel}
+            aria-label={statusLabel}
+          />
+          <Countdown targetUTC={match.deadline} />
+        </div>
+        <div className="flex-1 text-center">
+          <span
+            className={`text-sm font-semibold tracking-[0.2em] uppercase ${
+              match.status === 'finished'
+                ? 'text-muted'
+                : hasStarted
+                  ? 'match-live-pulse text-error'
+                  : 'text-slate-300'
+            }`}
+          >
+            {matchStateLabel}
+          </span>
+        </div>
         {canPredict && home !== '' && away !== '' && (
           <button
             onClick={handleSave}
             disabled={saving}
-            className="text-xs text-gold hover:underline disabled:opacity-50 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className={`text-xs min-h-[44px] min-w-[44px] flex items-center justify-center ${
+              saving ? 'text-green-400' : 'text-gold hover:underline'
+            } disabled:opacity-50`}
           >
-            {saving ? '...' : 'Guardar'}
+            {saving ? 'Guardando...' : 'Guardar'}
           </button>
         )}
         {match.status === 'finished' && userPrediction && (

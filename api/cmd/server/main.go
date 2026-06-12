@@ -17,6 +17,7 @@ import (
 	"github.com/quiniela2026/api/internal/db"
 	"github.com/quiniela2026/api/internal/handlers"
 	"github.com/quiniela2026/api/internal/middleware"
+	"github.com/quiniela2026/api/internal/services"
 )
 
 func main() {
@@ -35,12 +36,15 @@ func main() {
 	log.Println("connected to database")
 
 	authSvc := auth.NewService(cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
+	worldCup26Client := services.NewWorldCup26Client(cfg.WorldCup26BaseURL, cfg.WorldCup26Email, cfg.WorldCup26Password)
 
 	authH := &handlers.AuthHandler{DB: pool, AuthSvc: authSvc}
 	leagueH := &handlers.LeagueHandler{DB: pool}
 	matchH := &handlers.MatchHandler{DB: pool}
 	predH := &handlers.PredictionHandler{DB: pool}
 	leaderH := &handlers.LeaderboardHandler{DB: pool}
+	userH := &handlers.UserHandler{DB: pool}
+	tickerH := &handlers.TickerHandler{Provider: worldCup26Client, TZ: cfg.CostaRicaTZ}
 
 	r := chi.NewRouter()
 
@@ -48,7 +52,7 @@ func main() {
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.RealIP)
 	r.Use(chimw.Timeout(30 * time.Second))
-	r.Use(middleware.CORS)
+	r.Use(middleware.CORS(cfg.CORSAllowedOrigins))
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -56,6 +60,8 @@ func main() {
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {
+		r.Get("/ticker/today", tickerH.Today)
+
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/register", authH.Register)
 			r.Post("/login", authH.Login)
@@ -85,8 +91,18 @@ func main() {
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.Auth(authSvc))
 				r.Use(middleware.Admin)
+				r.Put("/{id}/score", matchH.UpdateLiveScore)
 				r.Put("/{id}/result", matchH.EnterResult)
 			})
+		})
+
+		r.Route("/users", func(r chi.Router) {
+			r.Use(middleware.Auth(authSvc))
+			r.Use(middleware.Admin)
+			r.Get("/", userH.List)
+			r.Post("/", userH.Create)
+			r.Put("/{id}", userH.Update)
+			r.Delete("/{id}", userH.Delete)
 		})
 
 		r.Route("/predictions", func(r chi.Router) {
@@ -99,8 +115,13 @@ func main() {
 		})
 
 		r.Route("/leaderboard", func(r chi.Router) {
-			r.Get("/global", leaderH.Global)
 			r.Get("/league/{id}", leaderH.ByLeague)
+
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.Auth(authSvc))
+				r.Use(middleware.Admin)
+				r.Get("/global", leaderH.Global)
+			})
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.Auth(authSvc))

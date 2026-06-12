@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { PlayerTeamName } from './TeamFlag'
+import GameTicker from './GameTicker'
 
 const navItems = [
   { path: '/matches', label: 'Partidos', auth: true },
@@ -11,6 +13,7 @@ const navItems = [
 const adminItems = [
   { path: '/admin/leagues', label: 'Admin Ligas' },
   { path: '/admin/results', label: 'Admin Resultados' },
+  { path: '/admin/users', label: 'Admin Usuarios' },
 ]
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -43,7 +46,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-4">
           {user ? (
             <>
-              <span className="hidden sm:inline text-xs text-muted">{user.player_team_name || user.username}</span>
+              <span className="hidden sm:inline text-xs text-muted">
+                <PlayerTeamName name={user.player_team_name || user.username} verified={user.is_verified} disabled={user.is_disabled} />
+              </span>
               <button onClick={logout} className="text-xs text-muted hover:text-error transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">Salir</button>
             </>
           ) : (
@@ -63,9 +68,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </svg>
           </button>
         </div>
-      </nav>
+	      </nav>
 
-      {menuOpen && (
+	      <GameTicker />
+
+	      {menuOpen && (
         <div className="md:hidden border-b border-surface-border bg-surface-card">
           <div className="px-4 py-2 flex flex-col gap-1">
             {allLinks.map(item => (
@@ -80,7 +87,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             ))}
             {user && (
               <span className="sm:hidden py-2 text-xs text-muted border-t border-surface-border mt-1 pt-3">
-                {user.player_team_name || user.username}
+                <PlayerTeamName name={user.player_team_name || user.username} verified={user.is_verified} disabled={user.is_disabled} />
               </span>
             )}
           </div>

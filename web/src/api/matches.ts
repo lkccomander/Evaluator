@@ -29,3 +29,10 @@ export function enterResult(matchId: string, homeScore: number, awayScore: numbe
     { method: 'PUT', body: { home_score: homeScore, away_score: awayScore }, token: authToken()! },
   )
 }
+
+export function updateLiveScore(matchId: string, homeScore: number, awayScore: number) {
+  return request<{ message: string; predictions_updated: number }>(
+    `/matches/${matchId}/score`,
+    { method: 'PUT', body: { home_score: homeScore, away_score: awayScore }, token: authToken()! },
+  )
+}

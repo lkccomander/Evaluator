@@ -1,6 +1,6 @@
 # 🏆 Spec: Quiniela Mundial 2026
-**Version:** 1.2  
-**Last Updated:** June 2026  
+**Version:** 1.3  
+**Last Updated:** June 9, 2026  
 **Stack:** Go · PostgreSQL · React · Railway  
 
 ---
@@ -191,6 +191,13 @@ func generateJoinCode() string {
 
 Base path: `/api/v1`
 
+### Client-Side Prefix Handling
+The frontend API client (`web/src/api/client.ts`) automatically appends `/api/v1` to the `VITE_API_URL` base URL at runtime if it is not already present. This means `VITE_API_URL` can be set to either:
+- `https://api-production-e252.up.railway.app` (bare) → client adds `/api/v1`
+- `https://api-production-e252.up.railway.app/api/v1` (full) → client uses as-is
+
+This was added to fix 404 errors when `VITE_API_URL` was set to the bare service URL without the prefix.
+
 ### Auth
 | Method | Path | Auth | Description |
 |---|---|---|---|
@@ -371,6 +378,34 @@ Step 2: "Do you have a league code?" (optional field)
 - Score input per match + "Submit Result" button
 - Triggers scoring job immediately on submit
 
+### 9.9 Country Flags
+Flags are rendered from local SVG assets (`country-flag-icons` package), no external CDN.
+
+**Implementation:**
+- `web/src/lib/teamFlags.ts` — maps each team name (incl. accents) to an ISO 3166-1 alpha-2 code (e.g. `"México" → "MX"`)
+- `web/src/components/TeamFlag.tsx` — exports `TeamName` component that renders flag SVG (20px × 20px) + team name in an inline-flex row
+- Flags render left of team name by default, right when `align="right"` is passed
+- Falls back to text-only gracefully if a team has no flag mapping
+- Supports `GB-ENG` (Inglaterra) and `GB-SCT` (Escocia) via the package's sub-region flags
+
+**Coverage:** 48 teams mapped. Bundle impact: ~40KB (SVG flags from the 48 imported country codes).
+
+### 9.10 Mobile GUI (Phase 12)
+All mobile improvements are applied globally via Tailwind responsive utilities and CSS:
+
+| Feature | Implementation |
+|---|---|
+| **Hamburger nav** | `md:hidden` hamburger button toggles a slide-down drawer; desktop links are `hidden md:flex` |
+| **Sticky header** | `sticky top-0 z-50 bg-surface/95 backdrop-blur` on nav bar |
+| **Safe areas** | `env(safe-area-inset-top)` on nav, `env(safe-area-inset-bottom)` on main |
+| **Touch targets** | All interactive elements respect `min-h-[44px]` / `min-w-[44px]` (Apple HIG minimum) |
+| **Tap highlight** | `-webkit-tap-highlight-color: transparent` globally |
+| **Overscroll** | `overscroll-behavior: none` to prevent pull-to-refresh on non-scrollable areas |
+| **Table scroll** | `overflow-x-auto` on LeaderboardTable and AdminLeagues table |
+| **AdminResults** | Team names use `truncate` + `flex-1` + `min-w-0` instead of fixed `w-28`, responsive gap |
+| **Selection color** | `::selection { background-color: #f59e0b40 }` for gold-tinted text selection |
+| **Score inputs** | Bumped from `w-10 h-10` (40px) to `w-12 h-12` (48px) on both MatchCard and AdminResults |
+
 ---
 
 ## 10. Match Fixtures Seed Data
@@ -384,12 +419,27 @@ All 72 group-stage matches. Times stored as UTC (CR GMT-6 → add 6 hours for UT
 ## 11. Railway Deployment Architecture
 
 ```
-Railway Project: quiniela-wc2026
-├── Service: api          (Go binary, PORT=8080)
-│   └── Env: DATABASE_URL, JWT_SECRET, ADMIN_TOKEN
-├── Service: web          (Vite build via Nginx)
-│   └── Env: VITE_API_URL
-└── Service: postgres     (Railway managed PostgreSQL)
+Railway Project: humorous-passion (auto-generated, project ID ce130017-cc3b-421f-aaf6-421ea50daf3b)
+├── Service: API          (Go binary, PORT=8080, source: lkccomander/Evaluator repo)
+│   ├── URL: https://api-production-e252.up.railway.app
+│   └── Env: DATABASE_URL, JWT_SECRET
+├── Service: WEB          (Vite build via Nginx, source: railway up from local)
+│   ├── URL: https://web-production-7f56f.up.railway.app
+│   └── Env: VITE_API_URL=https://api-production-e252.up.railway.app
+└── Service: Postgres     (Railway managed PostgreSQL, ghcr.io/railwayapp-templates/postgres-ssl:18)
+    └── Volume: postgres-volume (50GB, ~1.1GB used)
+```
+
+### Quick Deploy Commands (CLI)
+
+The project is not linked by default in the local checkout. Use explicit IDs:
+
+```powershell
+# Web
+railway up "C:\Projects\quiniela2026\web" -p ce130017-cc3b-421f-aaf6-421ea50daf3b -e 92420b1e-4cec-4fb3-a01f-27620e5d8635 -s 5f3286d9-223f-4c86-b623-d27041bdc178 -y
+
+# API
+railway up "C:\Projects\quiniela2026\api" -p ce130017... -e 92420b1e... -s 0120dd20... -y
 ```
 
 ### Deployment Notes
@@ -398,18 +448,7 @@ Railway Project: quiniela-wc2026
 - React: `npm run build` → `dist/` served via Nginx
 - DB migrations run on startup via `golang-migrate`
 - All secrets in Railway environment variables (never in repo)
-
-### Recommended Railway Config (`railway.toml`):
-```toml
-[build]
-  builder = "dockerfile"
-  dockerfilePath = "Dockerfile"
-
-[deploy]
-  startCommand = "./api"
-  healthcheckPath = "/health"
-  healthcheckTimeout = 10
-```
+- The original project was mistakenly accessed as `quiniela-wc2026` in early dev notes; the actual Railway project name is `humorous-passion` (auto-assigned at creation by Railway)
 
 ---
 
@@ -440,23 +479,36 @@ quiniela-wc2026/
 │
 ├── web/                        # React frontend
 │   ├── src/
+│   │   ├── lib/
+│   │   │   └── teamFlags.ts     # Team name → ISO country code mapping (48 teams)
 │   │   ├── pages/
 │   │   │   ├── Leaderboard.tsx
 │   │   │   ├── Matches.tsx
+│   │   │   ├── MyPredictions.tsx
 │   │   │   ├── Login.tsx
 │   │   │   ├── Register.tsx
 │   │   │   ├── JoinLeague.tsx
 │   │   │   ├── AdminLeagues.tsx
 │   │   │   └── AdminResults.tsx
 │   │   ├── components/
+│   │   │   ├── Layout.tsx       # Nav + hamburger menu + sticky header + safe areas
 │   │   │   ├── MatchCard.tsx
+│   │   │   ├── TeamFlag.tsx     # TeamName component with SVG flags via country-flag-icons
 │   │   │   ├── LeaderboardTable.tsx
-│   │   │   ├── LeagueBanner.tsx  # Non-dismissable join-league gate
+│   │   │   ├── LeagueBanner.tsx
 │   │   │   └── Countdown.tsx
 │   │   ├── hooks/
-│   │   └── api/                # Typed API client
+│   │   │   └── useAuth.tsx
+│   │   ├── api/                # Typed API client
+│   │   │   ├── client.ts       # Axios-based, auto-appends /api/v1, token refresh on 401
+│   │   │   ├── auth.ts
+│   │   │   ├── leagues.ts
+│   │   │   ├── matches.ts
+│   │   │   ├── predictions.ts
+│   │   │   └── leaderboard.ts
+│   │   └── index.css           # Tailwind v4 theme, safe areas, tap highlight, overscroll
 │   ├── Dockerfile
-│   └── vite.config.ts
+│   └── vite.config.ts          # Dev proxy: /api → localhost:8080
 │
 └── railway.toml
 ```
@@ -479,7 +531,7 @@ quiniela-wc2026/
 | 9 | React: Leaderboard (global + league) | Live table, toggle, auto-refresh |
 | 10 | React: Admin screens | League management + result entry |
 | 11 | Railway deployment | Both services live, env vars configured |
-| 12 | QA + edge cases | No-league gate, deadline edge, tie scenarios, mobile |
+| 12 | QA + mobile + flags | Token refresh on 401, loading/error/empty states, hamburger menu, 44px touch targets, sticky nav, safe areas, country flags on match cards |
 
 ---
 
@@ -521,6 +573,7 @@ quiniela-wc2026/
 - **Prediction stats page** — most predicted scorelines per match, % picking each outcome
 - **Knockout stage** — additional rounds with separate scoring config
 - **WhatsApp bot** — submit predictions via WhatsApp message
+- **Admin: revert match result** — `PUT /api/v1/matches/{id}/revert` resets scores → `NULL`, status → `'upcoming'`, and clears `points_earned`/`goal_pts_earned` on all predictions for that match. Admin can then re-enter correct result. Idempotent scoring already handles re-processing.
 
 ---
 
@@ -528,10 +581,10 @@ quiniela-wc2026/
 
 ### 17. Calendar
 
-### 17. Calendar
+> **Note:** All kickoff times below are shown in GMT-6 (Costa Rica time) as displayed in the app. The database stores all times in `TIMESTAMPTZ` (UTC).
 
 # 🏆 Mundial 2026 — Fase de Grupos
-🕒 Horario: GMT / UTC  
+🕒 Horario: GMT-6 (Costa Rica)  
 📅 Fechas: 11 al 28 de junio 2026  
 📌 Total: 72 partidos de fase de grupos
 

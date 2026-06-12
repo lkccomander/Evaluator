@@ -1,4 +1,5 @@
 import type { LeaderboardEntry } from '../api/leaderboard'
+import { PlayerTeamName } from './TeamFlag'
 
 export default function LeaderboardTable({
   entries,
@@ -30,7 +31,11 @@ export default function LeaderboardTable({
                   {medal || rank}
                 </td>
                 <td className="py-2 px-2 font-medium">
-                  {entry.display_name || entry.player_team_name}
+                  <PlayerTeamName
+                    name={entry.display_name || entry.player_team_name}
+                    verified={entry.is_verified}
+                    disabled={entry.is_disabled}
+                  />
                 </td>
                 {showLeague && (
                   <td className="py-2 px-2 text-muted text-xs">{entry.league_name ?? '—'}</td>

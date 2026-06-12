@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiniela Mundial 2026 - Leaderboard LED</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #080808;
+      --up:       #00e030;
+      --down:     #ff2020;
+      --neu:      #ffffff;
+      --gold:     #F59E0B;
+
+      --glow-up:   0 0 4px #00e03088, 0 0 1px #00e030;
+      --glow-down: 0 0 4px #ff202088, 0 0 1px #ff2020;
+      --glow-neu:  0 0 4px #ffffff55;
+      --glow-gold: 0 0 4px #F59E0B88, 0 0 1px #F59E0B;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg);
+      font-family: 'VT323', monospace;
+      color: var(--neu);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    .header {
+      padding: 20px;
+      text-align: center;
+      border-bottom: 1px solid #1a1a1a;
+    }
+
+    .big-label {
+      font-size: 72px;
+      letter-spacing: 6px;
+      color: var(--neu);
+      text-shadow: 0 0 2px var(--neu), 0 0 6px #ffffff88;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 24px;
+      letter-spacing: 3px;
+      color: var(--gold);
+      text-shadow: var(--glow-gold);
+    }
+
+    /* Board Container */
+    .board-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* Grid */
+    .board-wrap {
+      background: #080808;
+      padding: 20px;
+      border-radius: 4px;
+      border: 1px solid #1a1a1a;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+    }
+
+    .cell {
+      font-family: 'VT323', monospace;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+      position: relative;
+      border-radius: 2px;
+    }
+
+    .cell .rank  { font-size: 15px; letter-spacing: 3px; opacity: 0.7; }
+    .cell .player { font-size: 22px; font-weight: bold; }
+    .cell .points { font-size: 30px; }
+    .cell .goalpts { font-size: 17px; }
+
+    .cell.up  { color: var(--up);   background: #001800; text-shadow: var(--glow-up); }
+    .cell.dn  { color: var(--down); background: #180000; text-shadow: var(--glow-down); }
+    .cell.neu { color: var(--neu);  background: #101010; text-shadow: var(--glow-neu); }
+    .cell.gold { color: var(--gold); background: #181000; text-shadow: var(--glow-gold); }
+
+    .pixel-overlay {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(0, 0, 0, 0.15) 3px,
+        rgba(0, 0, 0, 0.15) 4px
+      );
+      pointer-events: none;
+      border-radius: 2px;
+    }
+
+    /* Ticker */
+    .ticker-wrap {
+      overflow: hidden;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+      padding: 8px 0;
+      background: #080808;
+      margin-top: 30px;
+    }
+
+    .ticker-track {
+      display: flex;
+      gap: 40px;
+      white-space: nowrap;
+      width: max-content;
+      animation: scroll 28s linear infinite;
+    }
+
+    .ticker-track:hover {
+      animation-play-state: paused;
+    }
+
+    .t-item {
+      font-family: 'VT323', monospace;
+      font-size: 20px;
+      letter-spacing: 2px;
+      flex-shrink: 0;
+      display: flex;
+      gap: 15px;
+    }
+
+    .t-item .team { color: var(--neu); }
+    .t-item .score { color: var(--gold); }
+    .t-item .status { opacity: 0.7; }
+
+    @keyframes scroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* Flash Animation */
+    .flash {
+      animation: fl 0.5s ease-out;
+    }
+
+    @keyframes fl {
+      0%   { filter: brightness(2.5); }
+      100% { filter: brightness(1); }
+    }
+
+    /* Scanlines Overlay */
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.1) 2px,
+        rgba(0, 0, 0, 0.1) 3px
+      );
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .big-label {
+        font-size: 48px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .big-label {
+        font-size: 36px;
+      }
+      .cell .points {
+        font-size: 24px;
+      }
+    }
+
+    /* Status Badge */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 2px;
+      font-size: 16px;
+      letter-spacing: 2px;
+      margin-top: 10px;
+    }
+    .status-badge.live {
+      background: #001800;
+      color: var(--up);
+      text-shadow: var(--glow-up);
+    }
+    .status-badge.upcoming {
+      background: #101010;
+      color: var(--neu);
+      text-shadow: var(--glow-neu);
+    }
+  </style>
+</head>
+<body>
+  <div class="scanlines"></div>
+
+  <header class="header">
+    <h1 class="big-label">QUINIELA<br>MUNDIAL 2026</h1>
+    <div class="subtitle">LEADERBOARD EN VIVO</div>
+    <div class="status-badge live">● EN VIVO</div>
+  </header>
+
+  <div class="board-container">
+    <div class="board-wrap">
+      <div class="grid" id="leaderboard-grid">
+        <!-- Leaderboard entries will be injected here -->
+      </div>
+    </div>
+
+    <div class="ticker-wrap">
+      <div class="ticker-track" id="ticker-track">
+        <!-- Match ticker will be injected here -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Sample leaderboard data (replace with API call to /api/v1/leaderboard/global)
+    const leaderboardData = [
+      { rank: 1, player: 'Carlos M.', points: 45, goalPts: 12, league: 'Liga MX' },
+      { rank: 2, player: 'Ana S.', points: 43, goalPts: 15, league: 'Champions' },
+      { rank: 3, player: 'Luis R.', points: 40, goalPts: 10, league: 'Liga MX' },
+      { rank: 4, player: 'María L.', points: 38, goalPts: 14, league: 'Oficina' },
+      { rank: 5, player: 'José P.', points: 35, goalPts: 9, league: 'Liga MX' },
+      { rank: 6, player: 'Sofía T.', points: 33, goalPts: 11, league: 'Champions' },
+      { rank: 7, player: 'Diego F.', points: 30, goalPts: 8, league: 'Oficina' },
+      { rank: 8, player: 'Valeria K.', points: 28, goalPts: 10, league: 'Liga MX' },
+    ];
+
+    // Sample match data (replace with API call to /api/v1/matches)
+    const matchData = [
+      { home: 'México', away: 'Sudáfrica', score: '2-1', status: 'FIN' },
+      { home: 'Corea del Sur', away: 'Chequia', score: '1-1', status: 'FIN' },
+      { home: 'Canadá', away: 'Bosnia', score: '0-0', status: 'LIVE' },
+      { home: 'Catar', away: 'Suiza', score: '--', status: '20:00' },
+      { home: 'Brasil', away: 'Marruecos', score: '--', status: '21:00' },
+      { home: 'Haití', away: 'Escocia', score: '--', status: 'Mañana' },
+      { home: 'Alemania', away: 'Curazao', score: '--', status: 'Mañana' },
+      { home: 'Países Bajos', away: 'Japón', score: '--', status: 'Mañana' },
+    ];
+
+    // Render leaderboard
+    function renderLeaderboard(data) {
+      const grid = document.getElementById('leaderboard-grid');
+      grid.innerHTML = '';
+
+      data.forEach((entry, index) => {
+        const cell = document.createElement('div');
+        const trend = index < 3 ? 'gold' : (index % 2 === 0 ? 'up' : 'neu');
+        cell.className = `cell ${trend}`;
+        cell.id = `player-${entry.rank}`;
+
+        cell.innerHTML = `
+          <div class="pixel-overlay"></div>
+          <span class="rank">#${entry.rank.toString().padStart(2, '0')}</span>
+          <span class="player">${entry.player}</span>
+          <span class="points">${entry.points} pts</span>
+          <span class="goalpts">GP: ${entry.goalPts} | ${entry.league}</span>
+        `;
+
+        grid.appendChild(cell);
+      });
+    }
+
+    // Render ticker (duplicated for infinite scroll)
+    function renderTicker(data) {
+      const track = document.getElementById('ticker-track');
+      track.innerHTML = '';
+
+      const createTickerItems = () => {
+        return data.map(match => {
+          const statusClass = match.status === 'LIVE' ? 'up' : (match.status === 'FIN' ? 'dn' : 'neu');
+          return `
+            <span class="t-item ${statusClass}">
+              <span class="team">${match.home}</span>
+              <span class="score">${match.score}</span>
+              <span class="team">${match.away}</span>
+              <span class="status">[${match.status}]</span>
+            </span>
+          `;
+        }).join('');
+      };
+
+      // Duplicate for infinite scroll
+      track.innerHTML = createTickerItems() + createTickerItems();
+    }
+
+    // Flash effect on update
+    function flashUpdate(cellId) {
+      const cell = document.getElementById(cellId);
+      if (cell) {
+        void cell.offsetWidth; // force reflow
+        cell.classList.add('flash');
+        setTimeout(() => cell.classList.remove('flash'), 500);
+      }
+    }
+
+    // Poll for updates (replace with actual API endpoint)
+    async function pollLeaderboard() {
+      try {
+        // const response = await fetch('http://localhost:8080/api/v1/leaderboard/global');
+        // const data = await response.json();
+        // renderLeaderboard(data);
+        
+        // Simulate update for demo
+        console.log('Polling leaderboard...');
+      } catch (error) {
+        console.error('Error polling leaderboard:', error);
+      }
+    }
+
+    async function pollMatches() {
+      try {
+        // const response = await fetch('http://localhost:8080/api/v1/matches');
+        // const data = await response.json();
+        // renderTicker(data);
+        
+        // Simulate update for demo
+        console.log('Polling matches...');
+      } catch (error) {
+        console.error('Error polling matches:', error);
+      }
+    }
+
+    // Initialize
+    renderLeaderboard(leaderboardData);
+    renderTicker(matchData);
+
+    // Poll every 5 seconds
+    setInterval(pollLeaderboard, 5000);
+    setInterval(pollMatches, 5000);
+
+    // Demo: flash random player every 3 seconds
+    setInterval(() => {
+      const randomRank = Math.floor(Math.random() * 8) + 1;
+      flashUpdate(`player-${randomRank}`);
+    }, 3000);
+  </script>
+</body>
+</html>
