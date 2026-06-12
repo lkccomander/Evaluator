@@ -627,6 +627,41 @@ Not implemented in v1. Future enhancement.
 
 ---
 
+## Ticker
+
+### Today's Ticker (Public)
+
+```http
+GET /api/v1/ticker/today
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": "uuid",
+    "home_team": "Canada",
+    "away_team": "Bosnia and Herzegovina",
+    "group": "B",
+    "kickoff": "2026-06-12T19:00:00Z",
+    "status": "Programado",
+    "time_elapsed": "",
+    "home_score": "",
+    "away_score": ""
+  }
+]
+```
+
+**Description:**
+- Returns today's matches in Costa Rica timezone (midnight-to-midnight CR)
+- Kickoff times come from the DB (`kickoff_utc`), not from the external API
+- Live scores/status are merged from worldcup26.ir API by matching team names
+- Team names are sent in English (matching `teamColors` in the frontend)
+- Status values: `Programado`, `En juego`, `Finalizado`
+- Falls back to DB data (no live scores) if external API is unavailable
+
+---
+
 ## CORS
 
 Configured for production domain only. Local dev uses Vite proxy.

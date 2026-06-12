@@ -23,8 +23,9 @@
 | 8 | React: Match list + predictions | ✅ |
 | 9 | React: Leaderboard | ✅ |
 | 10 | React: Admin screens | ✅ |
-| 11 | Railway deploy | ⏳ Pendiente |
-| 12 | QA + edge cases | ⏳ Pendiente |
+| 11 | Railway deploy | ✅ |
+| 12 | QA + edge cases | ✅ |
+| 13 | Ticker (LED scrolling, nombres completos, colores, horas CR) | ✅ |
 
 ---
 

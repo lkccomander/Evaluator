@@ -4,6 +4,26 @@
 
 ### Backend (Go)
 
+#### 0. Never use `time.Truncate(24h)` for timezone-aware date boundaries
+**Lesson:** `time.Time.Truncate(d)` operates on the **absolute UTC time**, not on the timezone-adjusted time. Using `.In(tz).Truncate(24h)` truncates to midnight UTC, which causes off-by-one errors around midnight in other timezones. Match 2 (`kickoff_utc 02:00 UTC` = 20:00 CR previous day) fell inside the range and match 4 (`01:00 UTC` = 19:00 CR same day) fell outside.
+
+**Fix:** use `time.Date()` to construct midnight boundaries explicitly in the target timezone.
+
+```go
+// ❌ Bug: truncates to midnight UTC, not CR
+todayStart := time.Now().In(h.TZ).Truncate(24 * time.Hour)
+
+// ✅ Correct: midnight-to-midnight in CR timezone
+now := time.Now().In(h.TZ)
+todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, h.TZ)
+todayEnd := todayStart.AddDate(0, 0, 1)
+// Query using .UTC() for DB comparison
+rows, err := db.Query(ctx, "SELECT ... WHERE kickoff_utc >= $1 AND kickoff_utc < $2",
+    todayStart.UTC(), todayEnd.UTC())
+```
+
+---
+
 #### 1. Use `pgx` over `database/sql`
 **Lesson:** Native PostgreSQL driver provides better UUID/JSONB support and performance.
 

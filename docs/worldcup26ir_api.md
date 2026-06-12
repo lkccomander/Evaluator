@@ -213,6 +213,14 @@ Ejemplo:
 
 ## Notas de Integración
 
+### ⚠️ Timezone de `local_date`
+
+El campo `local_date` devuelve la hora **local del estadio** donde se juega el partido, NO en UTC ni en Costa Rica. Como los estadios están en USA/Canadá/México (husos UTC-4 a UTC-7), el offset contra CR (UTC-6) varía por partido. No se puede asumir que está en hora CR.
+
+**En esta quiniela:** el ticker (`GET /api/v1/ticker/today`) ahora ignora el `local_date` del API para la hora del partido y usa el `kickoff_utc` de la base de datos local (que tiene las horas CR correctas). Del API solo toma scores en vivo, estado y tiempo transcurrido. Los nombres de equipo se mapean de inglés (API) a español (DB) vía el mapa `enToEs` en `ticker.go`.
+
+---
+
 **Flujo recomendado para la quiniela:**
 
 1. Al arrancar, obtener token vía `POST /auth/authenticate` y cachearlo (dura 84 días).

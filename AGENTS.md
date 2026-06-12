@@ -20,3 +20,10 @@ Rules:
 - Railway project: `humorous-passion` (API service ID `0120dd20-150d-4f7d-a9af-51b32022953a`, WEB service ID `5f3286d9-223f-4c86-b623-d27041bdc178`)
 - STAGE environment ID: `54e25353-926b-45d1-9f96-78fb6cf4f868`
 - Auto-deploy configurado en dashboard de Railway por servicio: `main` → production, `stage` → STAGE
+
+## Latest Session (Jun 12)
+- Fixed DB match 5: Australia vs Turquía → sábado 13 jun 22:00 CR (`kickoff_utc = 2026-06-14 04:00:00+00`)
+- Ticker: nombres completos en vez de iniciales, removido glow effect
+- **Ticker reescrito**: ahora usa `DB *pgxpool.Pool` para consultar `kickoff_utc` de la DB en vez del `local_date` del API externa (que está en hora del estadio, no CR). Mapa `enToEs`/`esToEn` para 48 equipos. Envía nombres en inglés al frontend para que `teamColors` funcione.
+- Bugfix: `time.Truncate(24h)` opera en UTC no en CR → reemplazado por `time.Date()` con zona CR
+- Bugfix: colores perdidos porque DB envía nombres español vs `teamColors` inglés

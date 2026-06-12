@@ -4,9 +4,15 @@
 
 ### High Priority
 
-- [ ] **Fix uncommitted changes**
-  - `spec_quiniela_wc2026.md` - Review and commit changes
-  - `web/src/components/TeamFlag.tsx` - Review and commit changes
+- [x] **Ticker: usar DB kickoff_utc en vez de API local_date**
+  - El `local_date` del API externa está en hora local del estadio (varía por sede), no en hora CR
+  - Migration: `TickerHandler` ahora recibe `DB *pgxpool.Pool` y consulta `kickoff_utc` de la DB
+  - Usa `time.Date()` con zona CR para rangos correctos de medianoche a medianoche (reemplaza `Truncate(24h)` que opera en UTC)
+  - Mapeo bidireccional `enToEs`/`esToEn` para 48 equipos: API inglés ↔ DB español
+  - Envía nombres en inglés al frontend para que `teamColors` funcione
+- [x] **Ticker: eliminar glow effect** - Se removió `text-shadow` de las clases CSS del ticker
+- [x] **Ticker: nombres completos** - Cambió de iniciales (AUS/TUR) a nombre completo (Australia/Turquía)
+- [x] **Match 5 fecha corregida** - Australia vs Turquía movido a sábado 13 junio 22:00 CR (DB producción)
 
 ---
 
