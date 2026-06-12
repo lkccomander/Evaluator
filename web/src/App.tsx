@@ -10,6 +10,7 @@ import Leaderboard from './pages/Leaderboard'
 import AdminLeagues from './pages/AdminLeagues'
 import AdminResults from './pages/AdminResults'
 import AdminUsers from './pages/AdminUsers'
+import AdminBannerConfig from './pages/AdminBannerConfig'
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/admin/leagues" element={<AdminRoute><AdminLeagues /></AdminRoute>} />
           <Route path="/admin/results" element={<AdminRoute><AdminResults /></AdminRoute>} />
           <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+          <Route path="/admin/banner-config" element={<AdminRoute><AdminBannerConfig /></AdminRoute>} />
         </Routes>
       </Layout>
     </BrowserRouter>

@@ -104,6 +104,12 @@ func main() {
 			})
 		})
 
+		r.Route("/admin", func(r chi.Router) {
+			r.Use(middleware.Auth(authSvc))
+			r.Use(middleware.Admin)
+			r.Get("/banner-debug", tickerH.BannerDebug)
+		})
+
 		r.Route("/users", func(r chi.Router) {
 			r.Use(middleware.Auth(authSvc))
 			r.Use(middleware.Admin)

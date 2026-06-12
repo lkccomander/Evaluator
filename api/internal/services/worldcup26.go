@@ -71,6 +71,31 @@ func (c *WorldCup26Client) GetGames(ctx context.Context) ([]WorldCup26Game, erro
 	}
 	c.cacheMu.Unlock()
 
+	games, err := c.fetchGames(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	c.cacheMu.Lock()
+	c.cacheGames = games
+	c.cacheAt = time.Now()
+	c.cacheMu.Unlock()
+
+	return games, nil
+}
+
+func (c *WorldCup26Client) GetGamesFresh(ctx context.Context) ([]WorldCup26Game, error) {
+	if !c.Enabled() {
+		return []WorldCup26Game{}, nil
+	}
+	return c.fetchGames(ctx)
+}
+
+func (c *WorldCup26Client) fetchGames(ctx context.Context) ([]WorldCup26Game, error) {
+	if !c.Enabled() {
+		return []WorldCup26Game{}, nil
+	}
+
 	token, err := c.getToken(ctx)
 	if err != nil {
 		return nil, err
@@ -116,11 +141,6 @@ func (c *WorldCup26Client) GetGames(ctx context.Context) ([]WorldCup26Game, erro
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return nil, fmt.Errorf("decode provider games: %w", err)
 	}
-
-	c.cacheMu.Lock()
-	c.cacheGames = payload.Games
-	c.cacheAt = time.Now()
-	c.cacheMu.Unlock()
 
 	return payload.Games, nil
 }

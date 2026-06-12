@@ -210,6 +210,103 @@ func (h *TickerHandler) Today(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, entries)
 }
 
+func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
+	now := time.Now().In(h.TZ)
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, h.TZ)
+	todayEnd := todayStart.AddDate(0, 0, 1)
+
+	type apiGameEntry struct {
+		ID          string `json:"id"`
+		HomeTeam    string `json:"home_team"`
+		AwayTeam    string `json:"away_team"`
+		HomeScore   string `json:"home_score"`
+		AwayScore   string `json:"away_score"`
+		Finished    string `json:"finished"`
+		TimeElapsed string `json:"time_elapsed"`
+	}
+
+	var apiRaw []apiGameEntry
+	var tickerEntries []tickerEntry
+	var errMsg string
+
+	if h.Provider != nil && h.Provider.Enabled() {
+		games, err := h.Provider.GetGamesFresh(r.Context())
+		if err != nil {
+			errMsg = err.Error()
+		} else {
+			for _, g := range games {
+				home := g.HomeTeamNameEN
+				if home == "" {
+					home = g.HomeTeamLabel
+				}
+				away := g.AwayTeamNameEN
+				if away == "" {
+					away = g.AwayTeamLabel
+				}
+				apiRaw = append(apiRaw, apiGameEntry{
+					ID:          g.ID,
+					HomeTeam:    home,
+					AwayTeam:    away,
+					HomeScore:   g.HomeScore,
+					AwayScore:   g.AwayScore,
+					Finished:    g.Finished,
+					TimeElapsed: g.TimeElapsed,
+				})
+			}
+		}
+	}
+
+	rows, err := h.DB.Query(r.Context(),
+		`SELECT id, home_team, away_team, group_name, kickoff_utc, home_score, away_score, status
+		 FROM matches
+		 WHERE kickoff_utc >= $1 AND kickoff_utc < $2
+		 ORDER BY kickoff_utc ASC`,
+		todayStart.UTC(), todayEnd.UTC(),
+	)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var m dbMatch
+			if err := rows.Scan(&m.ID, &m.HomeTeam, &m.AwayTeam, &m.GroupName, &m.KickoffUTC,
+				&m.HomeScore, &m.AwayScore, &m.Status); err != nil {
+				continue
+			}
+			homeName := m.HomeTeam
+			awayName := m.AwayTeam
+			if en, ok := esToEn[homeName]; ok {
+				homeName = en
+			}
+			if en, ok := esToEn[awayName]; ok {
+				awayName = en
+			}
+			var homeScore, awayScore string
+			if m.HomeScore != nil {
+				homeScore = formatScore(*m.HomeScore)
+			}
+			if m.AwayScore != nil {
+				awayScore = formatScore(*m.AwayScore)
+			}
+			tickerEntries = append(tickerEntries, tickerEntry{
+				ID:          m.ID.String(),
+				HomeTeam:    homeName,
+				AwayTeam:    awayName,
+				Group:       m.GroupName,
+				Kickoff:     m.KickoffUTC.Format(time.RFC3339),
+				Status:      m.Status,
+				HomeScore:   homeScore,
+				AwayScore:   awayScore,
+			})
+		}
+	}
+
+	respondJSON(w, http.StatusOK, map[string]any{
+		"api_raw":        apiRaw,
+		"api_error":      errMsg,
+		"ticker_entries": tickerEntries,
+		"today_cr":       todayStart.Format("2006-01-02"),
+	})
+}
+
 func scorePtr(s string) *int {
 	s = strings.TrimSpace(s)
 	if s == "" || s == "null" {
