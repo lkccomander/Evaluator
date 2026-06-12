@@ -92,6 +92,15 @@ var enToEs = map[string]string{
 	"Panama":                      "Panamá",
 }
 
+var esToEn map[string]string
+
+func init() {
+	esToEn = make(map[string]string, len(enToEs))
+	for en, es := range enToEs {
+		esToEn[es] = en
+	}
+}
+
 func teamDisplayName(name, fallback string) string {
 	if strings.TrimSpace(name) != "" {
 		return name
@@ -110,8 +119,9 @@ func tickerStatus(finished, elapsed string) string {
 }
 
 func (h *TickerHandler) Today(w http.ResponseWriter, r *http.Request) {
-	todayStart := time.Now().In(h.TZ).Truncate(24 * time.Hour)
-	todayEnd := todayStart.Add(24 * time.Hour)
+	now := time.Now().In(h.TZ)
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, h.TZ)
+	todayEnd := todayStart.AddDate(0, 0, 1)
 
 	rows, err := h.DB.Query(r.Context(),
 		`SELECT id, home_team, away_team, group_name, kickoff_utc, home_score, away_score, status
@@ -170,10 +180,20 @@ func (h *TickerHandler) Today(w http.ResponseWriter, r *http.Request) {
 		if m.AwayScore != nil {
 			awayScore = formatScore(*m.AwayScore)
 		}
+
+		homeName := m.HomeTeam
+		awayName := m.AwayTeam
+		if en, ok := esToEn[homeName]; ok {
+			homeName = en
+		}
+		if en, ok := esToEn[awayName]; ok {
+			awayName = en
+		}
+
 		entries = append(entries, tickerEntry{
 			ID:          m.ID.String(),
-			HomeTeam:    m.HomeTeam,
-			AwayTeam:    m.AwayTeam,
+			HomeTeam:    homeName,
+			AwayTeam:    awayName,
 			Group:       m.GroupName,
 			Kickoff:     m.KickoffUTC.Format(time.RFC3339),
 			Status:      m.Status,
