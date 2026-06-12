@@ -2,7 +2,6 @@ import { useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getTodayTicker } from '../api/ticker'
 import { getBannerMessages } from '../api/banner'
-import { teamColors } from '../lib/teamColors'
 
 type TickerGame = {
   kind: 'game'
@@ -13,6 +12,8 @@ type TickerGame = {
   awayTeam: string
   details: string
   group: string
+  score: string
+  timeLabel: string
 }
 
 type TickerFallback = {
@@ -38,10 +39,11 @@ function buildItems(games: Awaited<ReturnType<typeof getTodayTicker>>): TickerIt
       minute: '2-digit',
     })
     const score = `${game.home_score}-${game.away_score}`
+    const isLive = game.status === 'En juego' && game.time_elapsed && game.time_elapsed !== 'notstarted'
     const details =
       game.status === 'Programado'
         ? kickoff
-        : game.status === 'En juego' && game.time_elapsed && game.time_elapsed !== 'notstarted'
+        : isLive
           ? `${score} ${game.time_elapsed.toUpperCase()}`
           : score
     const hasGoal = Number(game.home_score) > 0 || Number(game.away_score) > 0
@@ -54,6 +56,8 @@ function buildItems(games: Awaited<ReturnType<typeof getTodayTicker>>): TickerIt
       awayTeam: game.away_team,
       details,
       group: game.group,
+      score: game.status === 'Programado' ? '' : score,
+      timeLabel: isLive ? game.time_elapsed.toUpperCase() : '',
     }
   })
 }
@@ -72,15 +76,14 @@ function TickerSpan({ item }: { item: TickerItem }) {
     <span className={`ticker-led-text inline-flex items-center gap-3 px-6 text-sm uppercase ${itemClass(item.status)}`}>
       <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
       {item.kind === 'game' ? (
-        <span>
-          <span className="font-bold" style={{ color: teamColors[item.homeTeam] ?? '#fff' }}>
-            {item.homeTeam}
-          </span>
+        <span className="text-green-500">
+          <span className="font-bold">{item.homeTeam}</span>
           <span className="mx-1">/</span>
-          <span className="font-bold" style={{ color: teamColors[item.awayTeam] ?? '#fff' }}>
-            {item.awayTeam}
-          </span>
-          <span className="ml-2">{item.details} {item.status.toUpperCase()} GRUPO {item.group}</span>
+          <span className="font-bold text-red-500">{item.awayTeam}</span>
+          {item.score && <span className="ml-2 text-orange-500">{item.score}</span>}
+          {item.timeLabel && <span className="ml-1">{item.timeLabel}</span>}
+          {item.status === 'Programado' && <span className="ml-2">{item.details}</span>}
+          <span className="ml-2">{item.status.toUpperCase()} GRUPO {item.group}</span>
         </span>
       ) : (
         <span>{item.text}</span>
