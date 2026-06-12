@@ -1,4 +1,4 @@
-import { request } from './client'
+import { request, authToken } from './client'
 
 export interface BannerMessage {
   id: string
@@ -11,5 +11,5 @@ export function getBannerMessage() {
 }
 
 export function setBannerMessage(message: string) {
-  return request<BannerMessage>('/banner', { method: 'POST', body: { message } })
+  return request<BannerMessage>('/banner', { method: 'POST', body: { message }, token: authToken()! })
 }
