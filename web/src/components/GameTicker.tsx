@@ -186,12 +186,12 @@ export default function GameTicker() {
           {allItems.map(item => <TickerSpan key={`${item.id}-0`} item={item} />)}
           {allItems.map(item => <TickerSpan key={`${item.id}-1`} item={item} />)}
           {allItems.map(item => <TickerSpan key={`${item.id}-2`} item={item} />)}
+          {(goalFlashIds.current.size > 0 || chantActive) && (
+            <span className="ticker-goal-chant inline-flex items-center px-6 text-sm uppercase">
+              CANTALOOOOOOOOO!!! CANTALOOOOOOOOO!!!
+            </span>
+          )}
         </div>
-        {(goalFlashIds.current.size > 0 || chantActive) && (
-          <div className="ticker-goal-chant">
-            <span>CANTALOOOOOOOOO!!! CANTALOOOOOOOOO!!!</span>
-          </div>
-        )}
       </div>
     </div>
   )
