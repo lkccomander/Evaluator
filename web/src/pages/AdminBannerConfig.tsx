@@ -24,6 +24,7 @@ interface TickerEntry {
 
 interface DebugResponse {
   api_raw: ApiGameEntry[]
+  api_ok: boolean
   api_error: string
   ticker_entries: TickerEntry[]
   today_cr: string
@@ -70,7 +71,8 @@ export default function AdminBannerConfig() {
       {data && (
         <div className="flex flex-col gap-6">
           <section>
-            <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-2">
+            <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-2 flex items-center gap-2">
+              <span className={`h-3 w-3 rounded-full ${data.api_ok ? 'bg-green-500' : 'bg-red-500'}`} />
               Respuesta del API externo ({data.today_cr})
             </h2>
             {data.api_error && (

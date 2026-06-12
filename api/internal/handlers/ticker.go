@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sort"
@@ -123,7 +124,24 @@ func (h *TickerHandler) Today(w http.ResponseWriter, r *http.Request) {
 	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, h.TZ)
 	todayEnd := todayStart.AddDate(0, 0, 1)
 
-	rows, err := h.DB.Query(r.Context(),
+	dbMatches, err := h.queryTodayMatches(r.Context(), todayStart, todayEnd)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "database error")
+		return
+	}
+
+	h.mergeAPIScores(r.Context(), dbMatches)
+
+	entries := h.buildTickerEntries(dbMatches)
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Kickoff < entries[j].Kickoff
+	})
+
+	respondJSON(w, http.StatusOK, entries)
+}
+
+func (h *TickerHandler) queryTodayMatches(ctx context.Context, todayStart, todayEnd time.Time) ([]dbMatch, error) {
+	rows, err := h.DB.Query(ctx,
 		`SELECT id, home_team, away_team, group_name, kickoff_utc, home_score, away_score, status
 		 FROM matches
 		 WHERE kickoff_utc >= $1 AND kickoff_utc < $2
@@ -131,8 +149,7 @@ func (h *TickerHandler) Today(w http.ResponseWriter, r *http.Request) {
 		todayStart.UTC(), todayEnd.UTC(),
 	)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "database error")
-		return
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -145,32 +162,39 @@ func (h *TickerHandler) Today(w http.ResponseWriter, r *http.Request) {
 		}
 		dbMatches = append(dbMatches, m)
 	}
+	return dbMatches, nil
+}
 
-	if h.Provider != nil && h.Provider.Enabled() {
-		apiGames, err := h.Provider.GetGames(r.Context())
-		if err == nil {
-			apiByES := make(map[string]services.WorldCup26Game)
-			for _, g := range apiGames {
-				en := teamDisplayName(g.HomeTeamNameEN, g.HomeTeamLabel)
-				apiByES[en] = g
-			}
+func (h *TickerHandler) mergeAPIScores(ctx context.Context, dbMatches []dbMatch) {
+	if h.Provider == nil || !h.Provider.Enabled() {
+		return
+	}
+	apiGames, err := h.Provider.GetGames(ctx)
+	if err != nil {
+		return
+	}
 
-			for i, m := range dbMatches {
-				for en, es := range enToEs {
-					if es == m.HomeTeam {
-						if g, ok := apiByES[en]; ok {
-							dbMatches[i].HomeScore = scorePtr(g.HomeScore)
-							dbMatches[i].AwayScore = scorePtr(g.AwayScore)
-							status := tickerStatus(g.Finished, g.TimeElapsed)
-							dbMatches[i].Status = status
-						}
-						break
-					}
+	apiByES := make(map[string]services.WorldCup26Game)
+	for _, g := range apiGames {
+		en := teamDisplayName(g.HomeTeamNameEN, g.HomeTeamLabel)
+		apiByES[en] = g
+	}
+
+	for i, m := range dbMatches {
+		for en, es := range enToEs {
+			if es == m.HomeTeam {
+				if g, ok := apiByES[en]; ok {
+					dbMatches[i].HomeScore = scorePtr(g.HomeScore)
+					dbMatches[i].AwayScore = scorePtr(g.AwayScore)
+					dbMatches[i].Status = tickerStatus(g.Finished, g.TimeElapsed)
 				}
+				break
 			}
 		}
 	}
+}
 
+func (h *TickerHandler) buildTickerEntries(dbMatches []dbMatch) []tickerEntry {
 	entries := make([]tickerEntry, 0, len(dbMatches))
 	for _, m := range dbMatches {
 		var homeScore, awayScore string
@@ -202,12 +226,7 @@ func (h *TickerHandler) Today(w http.ResponseWriter, r *http.Request) {
 			AwayScore:   awayScore,
 		})
 	}
-
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Kickoff < entries[j].Kickoff
-	})
-
-	respondJSON(w, http.StatusOK, entries)
+	return entries
 }
 
 func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
@@ -226,7 +245,7 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var apiRaw []apiGameEntry
-	var tickerEntries []tickerEntry
+	var apiOK bool
 	var errMsg string
 
 	if h.Provider != nil && h.Provider.Enabled() {
@@ -234,6 +253,7 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			errMsg = err.Error()
 		} else {
+			apiOK = true
 			for _, g := range games {
 				home := g.HomeTeamNameEN
 				if home == "" {
@@ -256,51 +276,22 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	rows, err := h.DB.Query(r.Context(),
-		`SELECT id, home_team, away_team, group_name, kickoff_utc, home_score, away_score, status
-		 FROM matches
-		 WHERE kickoff_utc >= $1 AND kickoff_utc < $2
-		 ORDER BY kickoff_utc ASC`,
-		todayStart.UTC(), todayEnd.UTC(),
-	)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var m dbMatch
-			if err := rows.Scan(&m.ID, &m.HomeTeam, &m.AwayTeam, &m.GroupName, &m.KickoffUTC,
-				&m.HomeScore, &m.AwayScore, &m.Status); err != nil {
-				continue
-			}
-			homeName := m.HomeTeam
-			awayName := m.AwayTeam
-			if en, ok := esToEn[homeName]; ok {
-				homeName = en
-			}
-			if en, ok := esToEn[awayName]; ok {
-				awayName = en
-			}
-			var homeScore, awayScore string
-			if m.HomeScore != nil {
-				homeScore = formatScore(*m.HomeScore)
-			}
-			if m.AwayScore != nil {
-				awayScore = formatScore(*m.AwayScore)
-			}
-			tickerEntries = append(tickerEntries, tickerEntry{
-				ID:          m.ID.String(),
-				HomeTeam:    homeName,
-				AwayTeam:    awayName,
-				Group:       m.GroupName,
-				Kickoff:     m.KickoffUTC.Format(time.RFC3339),
-				Status:      m.Status,
-				HomeScore:   homeScore,
-				AwayScore:   awayScore,
-			})
-		}
+	dbMatches, err := h.queryTodayMatches(r.Context(), todayStart, todayEnd)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "database error")
+		return
 	}
+
+	h.mergeAPIScores(r.Context(), dbMatches)
+
+	tickerEntries := h.buildTickerEntries(dbMatches)
+	sort.Slice(tickerEntries, func(i, j int) bool {
+		return tickerEntries[i].Kickoff < tickerEntries[j].Kickoff
+	})
 
 	respondJSON(w, http.StatusOK, map[string]any{
 		"api_raw":        apiRaw,
+		"api_ok":         apiOK,
 		"api_error":      errMsg,
 		"ticker_entries": tickerEntries,
 		"today_cr":       todayStart.Format("2006-01-02"),
