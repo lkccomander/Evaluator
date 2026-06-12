@@ -1,4 +1,4 @@
-import { request } from './client'
+import { request, authToken } from './client'
 
 interface TokenResponse {
   access_token: string
@@ -42,4 +42,8 @@ export function refresh(refreshToken: string) {
 
 export function getMe(token: string) {
   return request<User>('/me', { token })
+}
+
+export function updateProfile(body: { display_name?: string | null; player_team_name?: string }) {
+  return request<User>('/me', { method: 'PUT', body, token: authToken()! })
 }

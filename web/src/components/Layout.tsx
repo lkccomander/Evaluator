@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { PlayerTeamName } from './TeamFlag'
+import { updateProfile } from '../api/auth'
 import GameTicker from './GameTicker'
 
 const navItems = [
@@ -17,12 +18,41 @@ const adminItems = [
 ]
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, logout } = useAuth()
+  const { user, isAdmin, logout, refreshUser } = useAuth()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editDisplayName, setEditDisplayName] = useState('')
+  const [editTeamName, setEditTeamName] = useState('')
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState('')
 
   const isActive = (path: string) =>
     location.pathname === path ? 'text-gold' : 'text-muted hover:text-white'
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setEditError('')
+    setEditLoading(true)
+    try {
+      const body: { display_name?: string | null; player_team_name?: string } = {}
+      if (editDisplayName.trim()) {
+        body.display_name = editDisplayName.trim()
+      } else {
+        body.display_name = null
+      }
+      if (editTeamName.trim()) {
+        body.player_team_name = editTeamName.trim()
+      }
+      await updateProfile(body)
+      await refreshUser()
+      setEditOpen(false)
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Error al guardar')
+    } finally {
+      setEditLoading(false)
+    }
+  }
 
   const allLinks = [
     ...navItems.filter(i => !i.auth || user),
@@ -48,6 +78,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <>
               <span className="hidden sm:inline text-xs text-muted">
                 <PlayerTeamName name={user.player_team_name || user.username} verified={user.is_verified} disabled={user.is_disabled} />
+                <button
+                  onClick={() => { setEditDisplayName(user.display_name || ''); setEditTeamName(user.player_team_name || ''); setEditError(''); setEditOpen(true) }}
+                  className="ml-1.5 align-middle text-muted hover:text-white transition-colors"
+                  aria-label="Editar perfil"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
               </span>
               <button onClick={logout} className="text-xs text-muted hover:text-error transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">Salir</button>
             </>
@@ -86,10 +126,68 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
             {user && (
-              <span className="sm:hidden py-2 text-xs text-muted border-t border-surface-border mt-1 pt-3">
+              <span className="sm:hidden py-2 text-xs text-muted border-t border-surface-border mt-1 pt-3 flex items-center gap-1">
                 <PlayerTeamName name={user.player_team_name || user.username} verified={user.is_verified} disabled={user.is_disabled} />
+                <button
+                  onClick={() => { setEditDisplayName(user.display_name || ''); setEditTeamName(user.player_team_name || ''); setEditError(''); setEditOpen(true); setMenuOpen(false) }}
+                  className="text-muted hover:text-white transition-colors"
+                  aria-label="Editar perfil"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
               </span>
             )}
+          </div>
+        </div>
+      )}
+
+      {editOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4" onClick={() => !editLoading && setEditOpen(false)}>
+          <div className="bg-surface-card border border-surface-border rounded-lg p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h2 className="text-white font-semibold text-lg mb-4">Editar Perfil</h2>
+            <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
+              <div>
+                <label className="block text-xs text-muted mb-1">Nombre visible</label>
+                <input
+                  type="text"
+                  value={editDisplayName}
+                  onChange={e => setEditDisplayName(e.target.value)}
+                  className="w-full bg-surface text-white border border-surface-border rounded px-3 py-2 text-sm outline-none focus:border-gold transition-colors"
+                  placeholder="Tu nombre público"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-muted mb-1">Equipo</label>
+                <input
+                  type="text"
+                  value={editTeamName}
+                  onChange={e => setEditTeamName(e.target.value)}
+                  className="w-full bg-surface text-white border border-surface-border rounded px-3 py-2 text-sm outline-none focus:border-gold transition-colors"
+                  placeholder="Nombre de tu equipo"
+                />
+              </div>
+              {editError && <p className="text-error text-xs">{editError}</p>}
+              <div className="flex justify-end gap-3 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditOpen(false)}
+                  disabled={editLoading}
+                  className="px-4 py-2 text-xs text-muted hover:text-white transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="px-4 py-2 text-xs bg-gold text-black font-semibold rounded hover:brightness-110 transition-all disabled:opacity-50"
+                >
+                  {editLoading ? 'Guardando…' : 'Guardar'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

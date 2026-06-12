@@ -20,6 +20,11 @@ type WorldCup26Client struct {
 	mu          sync.Mutex
 	token       string
 	tokenExpiry time.Time
+
+	cacheMu    sync.Mutex
+	cacheGames []WorldCup26Game
+	cacheAt    time.Time
+	cacheTTL   time.Duration
 }
 
 type WorldCup26Game struct {
@@ -45,6 +50,7 @@ func NewWorldCup26Client(baseURL, email, password string) *WorldCup26Client {
 		httpClient: &http.Client{
 			Timeout: 15 * time.Second,
 		},
+		cacheTTL: 60 * time.Second,
 	}
 }
 
@@ -56,6 +62,14 @@ func (c *WorldCup26Client) GetGames(ctx context.Context) ([]WorldCup26Game, erro
 	if !c.Enabled() {
 		return []WorldCup26Game{}, nil
 	}
+
+	c.cacheMu.Lock()
+	if c.cacheGames != nil && time.Since(c.cacheAt) < c.cacheTTL {
+		games := c.cacheGames
+		c.cacheMu.Unlock()
+		return games, nil
+	}
+	c.cacheMu.Unlock()
 
 	token, err := c.getToken(ctx)
 	if err != nil {
@@ -102,6 +116,11 @@ func (c *WorldCup26Client) GetGames(ctx context.Context) ([]WorldCup26Game, erro
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return nil, fmt.Errorf("decode provider games: %w", err)
 	}
+
+	c.cacheMu.Lock()
+	c.cacheGames = payload.Games
+	c.cacheAt = time.Now()
+	c.cacheMu.Unlock()
 
 	return payload.Games, nil
 }
@@ -159,7 +178,12 @@ func (c *WorldCup26Client) getToken(ctx context.Context) (string, error) {
 
 func (c *WorldCup26Client) invalidateToken() {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.token = ""
 	c.tokenExpiry = time.Time{}
+	c.mu.Unlock()
+
+	c.cacheMu.Lock()
+	c.cacheGames = nil
+	c.cacheAt = time.Time{}
+	c.cacheMu.Unlock()
 }

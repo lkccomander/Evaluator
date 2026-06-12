@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>Quiniela Git Desktop</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Quiniela Git Desktop</h1>
+      <p class="subtitle">Flujo stage → main</p>
+    </header>
+
+    <section class="card">
+      <h2>Ramas activas</h2>
+      <button id="refreshBtn" class="btn-secondary">⟳ Refrescar</button>
+      <ul id="branchList" class="branch-list"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Próximos comandos</h2>
+      <div id="commandBox" class="command-box" contenteditable="false">Selecciona una rama para ver los comandos…</div>
+      <button id="copyBtn" class="btn-secondary" style="display:none">📋 Copiar</button>
+    </section>
+
+    <footer>
+      <code id="gitVersion">—</code>
+    </footer>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

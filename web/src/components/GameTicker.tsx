@@ -94,12 +94,12 @@ export default function GameTicker() {
   const { data: games = [] } = useQuery({
     queryKey: ['ticker', 'today'],
     queryFn: getTodayTicker,
-    refetchInterval: 300_000,
+    refetchInterval: 60_000,
   })
   const { data: banners = [] } = useQuery({
     queryKey: ['banner'],
     queryFn: getBannerMessages,
-    refetchInterval: 300_000,
+    refetchInterval: 60_000,
   })
 
   const rawItems = games.length > 0 ? buildItems(games) : []

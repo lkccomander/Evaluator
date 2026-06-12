@@ -141,6 +141,7 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(authSvc))
 			r.Get("/me", authH.Me)
+			r.Put("/me", authH.UpdateProfile)
 		})
 	})
 

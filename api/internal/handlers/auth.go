@@ -264,6 +264,63 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, user)
 }
 
+func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r)
+	if !ok {
+		respondError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	var req struct {
+		DisplayName    *string `json:"display_name"`
+		PlayerTeamName *string `json:"player_team_name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+
+	_, err := h.DB.Exec(r.Context(),
+		`UPDATE users SET
+			display_name    = COALESCE($2, display_name),
+			player_team_name = COALESCE($3, player_team_name),
+			updated_at      = NOW()
+		 WHERE id = $1`,
+		userID, req.DisplayName, req.PlayerTeamName,
+	)
+	if err != nil {
+		if isPGUniqueViolation(err) {
+			respondError(w, http.StatusConflict, "ese nombre de equipo ya está en uso")
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "database error")
+		return
+	}
+
+	var user struct {
+		ID             uuid.UUID  `json:"id"`
+		Username       string     `json:"username"`
+		Email          string     `json:"email"`
+		PlayerTeamName string     `json:"player_team_name"`
+		DisplayName    *string    `json:"display_name"`
+		LeagueID       *uuid.UUID `json:"league_id"`
+		IsAdmin        bool       `json:"is_admin"`
+		IsVerified     bool       `json:"is_verified"`
+		IsDisabled     bool       `json:"is_disabled"`
+		CreatedAt      time.Time  `json:"created_at"`
+	}
+	err = h.DB.QueryRow(r.Context(),
+		`SELECT id, username, email, player_team_name, display_name, league_id, is_admin, is_verified, is_disabled, created_at
+		 FROM users WHERE id = $1`, userID,
+	).Scan(&user.ID, &user.Username, &user.Email, &user.PlayerTeamName, &user.DisplayName, &user.LeagueID, &user.IsAdmin, &user.IsVerified, &user.IsDisabled, &user.CreatedAt)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "user not found")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, user)
+}
+
 func (h *AuthHandler) storeRefreshToken(r *http.Request, userID uuid.UUID) (string, error) {
 	tokenID := uuid.New()
 	refreshToken, err := h.AuthSvc.GenerateRefreshToken(userID, tokenID)
