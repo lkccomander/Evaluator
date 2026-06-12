@@ -55,11 +55,14 @@ export default function AdminResults() {
   })
 
   const [bannerText, setBannerText] = useState('')
+  const [bannerSuccess, setBannerSuccess] = useState(false)
 
   const bannerMut = useMutation({
     mutationFn: (msg: string) => setBannerMessage(msg),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['banner'] })
+      setBannerSuccess(true)
+      setTimeout(() => setBannerSuccess(false), 3000)
     },
   })
 
@@ -84,6 +87,7 @@ export default function AdminResults() {
           >
             {bannerMut.isPending ? '...' : 'Publicar'}
           </button>
+          {bannerSuccess && <span className="text-green-500 text-sm font-semibold">Mensaje publicado</span>}
         </div>
       </div>
 
