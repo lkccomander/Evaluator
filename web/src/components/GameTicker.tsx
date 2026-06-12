@@ -42,7 +42,7 @@ function buildItems(games: Awaited<ReturnType<typeof getTodayTicker>>): TickerIt
       id: game.id,
       status: game.status,
       liveGoal: game.status === 'En juego' && hasGoal,
-      text: `${teamCode(game.home_team)}/${teamCode(game.away_team)} ${details} ${game.status.toUpperCase()} G${game.group}`,
+      text: `${teamCode(game.home_team)}/${teamCode(game.away_team)} ${details} ${game.status.toUpperCase()} GRUPO ${game.group}`,
     }
   })
 }
