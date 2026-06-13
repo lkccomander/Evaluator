@@ -97,7 +97,7 @@ input[type="number"] {
   display: flex;
   gap: 3rem;
   width: fit-content;
-  animation: ticker-marquee 240s linear infinite;
+  animation: ticker-marquee 960s linear infinite;
   will-change: transform;
 }
 

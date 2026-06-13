@@ -127,7 +127,8 @@ func (h *TickerHandler) Today(w http.ResponseWriter, r *http.Request) {
 	crNow := time.Now().In(h.TZ)
 	entries := make([]tickerEntry, 0, len(games))
 	for _, g := range games {
-		if !matchInWindow(g.LocalDate, crNow, h.TZ) {
+		md := g.MatchDate()
+		if !matchInWindow(md, crNow, h.TZ) {
 			continue
 		}
 		entries = append(entries, tickerEntry{
@@ -135,7 +136,7 @@ func (h *TickerHandler) Today(w http.ResponseWriter, r *http.Request) {
 			HomeTeam:    g.HomeTeamName(),
 			AwayTeam:    g.AwayTeamName(),
 			Group:       g.Group,
-			Kickoff:     parseLocalDate(g.LocalDate),
+			Kickoff:     parseLocalDate(md),
 			Status:      tickerStatus(g.Finished, g.TimeElapsed),
 			TimeElapsed: g.TimeElapsed,
 			HomeScore:   g.HomeScore,
@@ -151,6 +152,9 @@ func (h *TickerHandler) Today(w http.ResponseWriter, r *http.Request) {
 }
 
 func parseLocalDate(s string) string {
+	if s == "" {
+		return ""
+	}
 	layouts := []string{
 		time.RFC3339,
 		"2006-01-02T15:04:05",
@@ -165,8 +169,8 @@ func parseLocalDate(s string) string {
 	return s
 }
 
-func matchInWindow(localDate string, crNow time.Time, crLoc *time.Location) bool {
-	s := strings.TrimSpace(localDate)
+func matchInWindow(dateStr string, crNow time.Time, crLoc *time.Location) bool {
+	s := strings.TrimSpace(dateStr)
 	if s == "" {
 		return true
 	}
@@ -284,15 +288,18 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 	todayEnd := todayStart.AddDate(0, 0, 1)
 
 	type apiGameEntry struct {
-		ID          string `json:"id"`
-		HomeTeam    string `json:"home_team"`
-		AwayTeam    string `json:"away_team"`
-		HomeScore   string `json:"home_score"`
-		AwayScore   string `json:"away_score"`
-		Finished    string `json:"finished"`
-		TimeElapsed string `json:"time_elapsed"`
-		LocalDate   string `json:"local_date"`
-		Group       string `json:"group"`
+		ID             string `json:"id"`
+		HomeTeam       string `json:"home_team"`
+		AwayTeam       string `json:"away_team"`
+		HomeScore      string `json:"home_score"`
+		AwayScore      string `json:"away_score"`
+		Finished       string `json:"finished"`
+		TimeElapsed    string `json:"time_elapsed"`
+		LocalDate      string `json:"local_date"`
+		Date           string `json:"date"`
+		MatchDateField string `json:"match_date_raw"`
+		MatchDateVal   string `json:"match_date_val"`
+		Group          string `json:"group"`
 	}
 
 	var apiRaw []apiGameEntry
@@ -318,6 +325,9 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 					Finished:    g.Finished,
 					TimeElapsed: g.TimeElapsed,
 					LocalDate:   g.LocalDate,
+					Date:        g.Date,
+					MatchDateField: g.MatchDateField,
+					MatchDateVal:   g.MatchDate(),
 					Group:       g.Group,
 				})
 			}
@@ -329,15 +339,18 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 				home := g.HomeTeamName()
 				away := g.AwayTeamName()
 				apiCached = append(apiCached, apiGameEntry{
-					ID:          g.ID,
-					HomeTeam:    home,
-					AwayTeam:    away,
-					HomeScore:   g.HomeScore,
-					AwayScore:   g.AwayScore,
-					Finished:    g.Finished,
-					TimeElapsed: g.TimeElapsed,
-					LocalDate:   g.LocalDate,
-					Group:       g.Group,
+					ID:           g.ID,
+					HomeTeam:     home,
+					AwayTeam:     away,
+					HomeScore:    g.HomeScore,
+					AwayScore:    g.AwayScore,
+					Finished:     g.Finished,
+					TimeElapsed:  g.TimeElapsed,
+					LocalDate:    g.LocalDate,
+					Date:         g.Date,
+					MatchDateField: g.MatchDateField,
+					MatchDateVal:   g.MatchDate(),
+					Group:        g.Group,
 				})
 			}
 		}

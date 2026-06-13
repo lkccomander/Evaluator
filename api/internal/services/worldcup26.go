@@ -33,6 +33,8 @@ type WorldCup26Game struct {
 	AwayScore      string `json:"away_score"`
 	Group          string `json:"group"`
 	LocalDate      string `json:"local_date"`
+	Date           string `json:"date"`
+	Kickoff        string `json:"kickoff"`
 	Finished       string `json:"finished"`
 	TimeElapsed    string `json:"time_elapsed"`
 	Type           string `json:"type"`
@@ -42,6 +44,7 @@ type WorldCup26Game struct {
 	AwayTeamLabel  string `json:"away_team_label"`
 	HomeTeam       string `json:"home_team"`
 	AwayTeam       string `json:"away_team"`
+	MatchDateField string `json:"match_date"`
 }
 
 func (g *WorldCup26Game) HomeTeamName() string {
@@ -62,6 +65,22 @@ func (g *WorldCup26Game) AwayTeamName() string {
 		return g.AwayTeamNameEN
 	}
 	return g.AwayTeamLabel
+}
+
+func (g *WorldCup26Game) MatchDate() string {
+	if g.LocalDate != "" {
+		return g.LocalDate
+	}
+	if g.Date != "" {
+		return g.Date
+	}
+	if g.MatchDateField != "" {
+		return g.MatchDateField
+	}
+	if g.Kickoff != "" {
+		return g.Kickoff
+	}
+	return ""
 }
 
 func NewWorldCup26Client(baseURL, email, password string) *WorldCup26Client {
