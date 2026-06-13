@@ -102,13 +102,6 @@ func init() {
 	}
 }
 
-func teamDisplayName(name, fallback string) string {
-	if strings.TrimSpace(name) != "" {
-		return name
-	}
-	return fallback
-}
-
 func tickerStatus(finished, elapsed string) string {
 	if strings.EqualFold(strings.TrimSpace(finished), "TRUE") {
 		return "Finalizado"
@@ -176,8 +169,7 @@ func (h *TickerHandler) mergeAPIScores(ctx context.Context, dbMatches []dbMatch)
 
 	apiByEN := make(map[string]services.WorldCup26Game)
 	for _, g := range apiGames {
-		en := teamDisplayName(g.HomeTeamNameEN, g.HomeTeamLabel)
-		apiByEN[en] = g
+		apiByEN[g.HomeTeamName()] = g
 	}
 
 	for i, m := range dbMatches {
@@ -251,14 +243,8 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 		} else {
 			apiOK = true
 			for _, g := range games {
-				home := g.HomeTeamNameEN
-				if home == "" {
-					home = g.HomeTeamLabel
-				}
-				away := g.AwayTeamNameEN
-				if away == "" {
-					away = g.AwayTeamLabel
-				}
+				home := g.HomeTeamName()
+				away := g.AwayTeamName()
 				apiRaw = append(apiRaw, apiGameEntry{
 					ID:          g.ID,
 					HomeTeam:    home,
@@ -274,14 +260,8 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 		cachedGames, err := h.Provider.GetGames(r.Context())
 		if err == nil {
 			for _, g := range cachedGames {
-				home := g.HomeTeamNameEN
-				if home == "" {
-					home = g.HomeTeamLabel
-				}
-				away := g.AwayTeamNameEN
-				if away == "" {
-					away = g.AwayTeamLabel
-				}
+				home := g.HomeTeamName()
+				away := g.AwayTeamName()
 				apiCached = append(apiCached, apiGameEntry{
 					ID:          g.ID,
 					HomeTeam:    home,
@@ -321,8 +301,7 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			apiByEN := make(map[string]services.WorldCup26Game)
 			for _, g := range apiGames {
-				en := teamDisplayName(g.HomeTeamNameEN, g.HomeTeamLabel)
-				apiByEN[en] = g
+				apiByEN[g.HomeTeamName()] = g
 			}
 			for _, m := range rawMatches {
 				entry := mergeDebugEntry{

@@ -40,6 +40,28 @@ type WorldCup26Game struct {
 	AwayTeamNameEN string `json:"away_team_name_en"`
 	HomeTeamLabel  string `json:"home_team_label"`
 	AwayTeamLabel  string `json:"away_team_label"`
+	HomeTeam       string `json:"home_team"`
+	AwayTeam       string `json:"away_team"`
+}
+
+func (g *WorldCup26Game) HomeTeamName() string {
+	if g.HomeTeam != "" {
+		return g.HomeTeam
+	}
+	if g.HomeTeamNameEN != "" {
+		return g.HomeTeamNameEN
+	}
+	return g.HomeTeamLabel
+}
+
+func (g *WorldCup26Game) AwayTeamName() string {
+	if g.AwayTeam != "" {
+		return g.AwayTeam
+	}
+	if g.AwayTeamNameEN != "" {
+		return g.AwayTeamNameEN
+	}
+	return g.AwayTeamLabel
 }
 
 func NewWorldCup26Client(baseURL, email, password string) *WorldCup26Client {
