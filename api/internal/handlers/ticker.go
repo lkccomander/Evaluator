@@ -124,8 +124,12 @@ func (h *TickerHandler) Today(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	crNow := time.Now().In(h.TZ)
 	entries := make([]tickerEntry, 0, len(games))
 	for _, g := range games {
+		if !matchInWindow(g.LocalDate, crNow, h.TZ) {
+			continue
+		}
 		entries = append(entries, tickerEntry{
 			ID:          g.ID,
 			HomeTeam:    g.HomeTeamName(),
@@ -159,6 +163,28 @@ func parseLocalDate(s string) string {
 		}
 	}
 	return s
+}
+
+func matchInWindow(localDate string, crNow time.Time, crLoc *time.Location) bool {
+	s := strings.TrimSpace(localDate)
+	if s == "" {
+		return true
+	}
+	layouts := []string{
+		time.RFC3339,
+		"2006-01-02T15:04:05",
+		"2006-01-02 15:04:05",
+		"2006-01-02",
+	}
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, s); err == nil {
+			tInCR := t.In(crLoc)
+			todayStart := time.Date(crNow.Year(), crNow.Month(), crNow.Day(), 0, 0, 0, 0, crLoc)
+			tomorrowEnd := todayStart.AddDate(0, 0, 2)
+			return !tInCR.Before(todayStart) && tInCR.Before(tomorrowEnd)
+		}
+	}
+	return true
 }
 
 func (h *TickerHandler) queryTodayMatches(ctx context.Context, todayStart, todayEnd time.Time) ([]dbMatch, error) {
