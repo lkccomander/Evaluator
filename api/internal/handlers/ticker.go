@@ -180,12 +180,9 @@ func matchInWindow(dateStr string, crNow time.Time, crLoc *time.Location) bool {
 	}
 
 	todayStr := crNow.Format("2006-01-02")
-	tomorrowStr := crNow.AddDate(0, 0, 1).Format("2006-01-02")
 	todayMMDD := crNow.Format("01/02/2006")
-	tomorrowMMDD := crNow.AddDate(0, 0, 1).Format("01/02/2006")
 
-	if strings.Contains(s, todayStr) || strings.Contains(s, tomorrowStr) ||
-		strings.Contains(s, todayMMDD) || strings.Contains(s, tomorrowMMDD) {
+	if strings.Contains(s, todayStr) || strings.Contains(s, todayMMDD) {
 		return true
 	}
 
@@ -201,7 +198,7 @@ func matchInWindow(dateStr string, crNow time.Time, crLoc *time.Location) bool {
 		if t, err := time.Parse(layout, s); err == nil {
 			tInCR := t.In(crLoc)
 			todayStart := time.Date(crNow.Year(), crNow.Month(), crNow.Day(), 0, 0, 0, 0, crLoc)
-			tomorrowEnd := todayStart.AddDate(0, 0, 2)
+			tomorrowEnd := todayStart.AddDate(0, 0, 1)
 			return !tInCR.Before(todayStart) && tInCR.Before(tomorrowEnd)
 		}
 	}
