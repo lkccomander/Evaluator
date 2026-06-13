@@ -45,6 +45,47 @@ type WorldCup26Game struct {
 	HomeTeam       string `json:"home_team"`
 	AwayTeam       string `json:"away_team"`
 	MatchDateField string `json:"match_date"`
+	StadiumID      string `json:"stadium_id"`
+}
+
+var stadiumTZ = map[string]string{
+	"1":  "America/Mexico_City",
+	"2":  "America/Mexico_City",
+	"3":  "America/Mexico_City",
+	"4":  "America/Chicago",
+	"5":  "America/Chicago",
+	"6":  "America/Chicago",
+	"7":  "America/New_York",
+	"8":  "America/New_York",
+	"9":  "America/New_York",
+	"10": "America/New_York",
+	"11": "America/New_York",
+	"12": "America/Toronto",
+	"13": "America/Vancouver",
+	"14": "America/Los_Angeles",
+	"15": "America/Los_Angeles",
+	"16": "America/Los_Angeles",
+}
+
+func (g *WorldCup26Game) Timezone() string {
+	if tz, ok := stadiumTZ[g.StadiumID]; ok {
+		return tz
+	}
+	return ""
+}
+
+func (g *WorldCup26Game) ZoneAbbr() string {
+	switch g.StadiumID {
+	case "1", "2", "3":
+		return "CST"
+	case "4", "5", "6":
+		return "CDT"
+	case "7", "8", "9", "10", "11", "12":
+		return "EDT"
+	case "13", "14", "15", "16":
+		return "PDT"
+	}
+	return ""
 }
 
 func (g *WorldCup26Game) HomeTeamName() string {

@@ -29,6 +29,7 @@ type tickerEntry struct {
 	TimeElapsed string `json:"time_elapsed"`
 	HomeScore   string `json:"home_score"`
 	AwayScore   string `json:"away_score"`
+	Timezone    string `json:"timezone"`
 }
 
 type dbMatch struct {
@@ -141,6 +142,7 @@ func (h *TickerHandler) Today(w http.ResponseWriter, r *http.Request) {
 			TimeElapsed: g.TimeElapsed,
 			HomeScore:   g.HomeScore,
 			AwayScore:   g.AwayScore,
+			Timezone:    g.ZoneAbbr(),
 		})
 	}
 
@@ -307,6 +309,7 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 		MatchDateField string `json:"match_date_raw"`
 		MatchDateVal   string `json:"match_date_val"`
 		Group          string `json:"group"`
+		Timezone       string `json:"timezone"`
 	}
 
 	var apiRaw []apiGameEntry
@@ -336,6 +339,7 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 					MatchDateField: g.MatchDateField,
 					MatchDateVal:   g.MatchDate(),
 					Group:       g.Group,
+					Timezone:    g.ZoneAbbr(),
 				})
 			}
 		}
@@ -358,6 +362,7 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 					MatchDateField: g.MatchDateField,
 					MatchDateVal:   g.MatchDate(),
 					Group:        g.Group,
+					Timezone:     g.ZoneAbbr(),
 				})
 			}
 		}

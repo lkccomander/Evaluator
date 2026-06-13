@@ -20,6 +20,7 @@ interface ApiGameEntry {
   away_score: string
   finished: string
   time_elapsed: string
+  timezone: string
 }
 
 interface MergeDebugEntry {
@@ -40,6 +41,7 @@ interface TickerEntry {
   status: string
   home_score: string
   away_score: string
+  timezone: string
 }
 
 interface DebugResponse {
@@ -211,6 +213,7 @@ export default function AdminBannerConfig() {
                       <th className="text-right px-4 py-2 font-medium">Visita</th>
                       <th className="text-center px-4 py-2 font-medium">Estado</th>
                       <th className="text-center px-4 py-2 font-medium">Grupo</th>
+                      <th className="text-center px-4 py-2 font-medium">Zona</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -244,6 +247,7 @@ export default function AdminBannerConfig() {
                             </span>
                           </td>
                           <td className="px-4 py-2.5 text-center text-muted text-xs">{e.group}</td>
+                          <td className="px-4 py-2.5 text-center text-muted text-xs font-mono">{e.timezone || '—'}</td>
                         </tr>
                       )
                     })}
