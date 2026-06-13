@@ -22,7 +22,10 @@ export default function AdminResults() {
   })
 
   const todayCr = crDateFormatter.format(new Date())
-  const todaysMatches = matches?.filter(m => crDateFormatter.format(new Date(m.kickoff_utc)) === todayCr) ?? []
+  const yesterdayCr = crDateFormatter.format(new Date(Date.now() - 86400000))
+  const tomorrowCr = crDateFormatter.format(new Date(Date.now() + 86400000))
+  const windowDays = new Set([yesterdayCr, todayCr, tomorrowCr])
+  const filteredMatches = matches?.filter(m => windowDays.has(crDateFormatter.format(new Date(m.kickoff_utc)))) ?? []
 
   const resultMut = useMutation({
     mutationFn: ({ id, home, away }: { id: string; home: number; away: number }) =>
@@ -94,7 +97,7 @@ export default function AdminResults() {
       </div>
 
       <div className="grid gap-2">
-        {todaysMatches.map(m => {
+        {filteredMatches.map(m => {
           const sc = scores[m.id] ?? {
             home: m.home_score?.toString() ?? '',
             away: m.away_score?.toString() ?? '',
@@ -161,14 +164,14 @@ export default function AdminResults() {
                 ) : hasStarted ? (
                   <span className="text-error">Partido iniciado. Puedes guardar marcador en vivo o finalizar.</span>
                 ) : (
-                  <span className="text-muted">Programado para hoy</span>
+                  <span className="text-muted">Programado</span>
                 )}
               </div>
             </div>
           )
         })}
-        {todaysMatches.length === 0 && (
-          <p className="text-muted text-sm">No hay partidos para hoy.</p>
+        {filteredMatches.length === 0 && (
+          <p className="text-muted text-sm">No hay partidos para esta ventana.</p>
         )}
       </div>
     </div>
