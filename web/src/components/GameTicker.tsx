@@ -79,16 +79,33 @@ function TickerSpan({ item }: { item: TickerItem }) {
       <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
       {item.kind === 'game' ? (
         <span className="text-green-500">
-          <span className="font-bold">{item.homeTeam}</span>
-          <span className="mx-1">/</span>
-          <span className="font-bold text-red-500">{item.awayTeam}</span>
-          {item.score && (
-            <span className={`ml-2 text-orange-500 ${item.kind === 'game' && item.justScored ? 'goal-flash' : ''}`}>
-              {item.score}
-            </span>
+          {item.status === 'Programado' ? (
+            <>
+              <span className="font-bold">{item.homeTeam}</span>
+              <span className="mx-1">/</span>
+              <span className="font-bold text-red-500">{item.awayTeam}</span>
+              {item.score && (
+                <span className={`ml-2 text-orange-500 ${item.kind === 'game' && item.justScored ? 'goal-flash' : ''}`}>
+                  {item.score}
+                </span>
+              )}
+              {item.timeLabel && <span className="ml-1">{item.timeLabel}</span>}
+              {item.status === 'Programado' && <span className="ml-2">{item.details}</span>}
+            </>
+          ) : (
+            <>
+              <span className="font-bold">{item.homeTeam}</span>
+              <span className="mx-1">:</span>
+              {item.score && (
+                <span className={`text-orange-500 ${item.kind === 'game' && item.justScored ? 'goal-flash' : ''}`}>
+                  {item.score}
+                </span>
+              )}
+              <span className="mx-1">:</span>
+              <span className="font-bold text-red-500">{item.awayTeam}</span>
+              {item.timeLabel && <span className="ml-1">{item.timeLabel}</span>}
+            </>
           )}
-          {item.timeLabel && <span className="ml-1">{item.timeLabel}</span>}
-          {item.status === 'Programado' && <span className="ml-2">{item.details}</span>}
           <span className="ml-2">{item.status.toUpperCase()} GRUPO {item.group}</span>
         </span>
       ) : (
