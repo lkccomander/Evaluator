@@ -113,24 +113,52 @@ func tickerStatus(finished, elapsed string) string {
 }
 
 func (h *TickerHandler) Today(w http.ResponseWriter, r *http.Request) {
-	now := time.Now().In(h.TZ)
-	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, h.TZ)
-	todayEnd := todayStart.AddDate(0, 0, 1)
-
-	dbMatches, err := h.queryTodayMatches(r.Context(), todayStart, todayEnd)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, "database error")
+	if h.Provider == nil || !h.Provider.Enabled() {
+		respondJSON(w, http.StatusOK, []tickerEntry{})
 		return
 	}
 
-	h.mergeAPIScores(r.Context(), dbMatches)
+	games, err := h.Provider.GetGames(r.Context())
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Sprintf("provider error: %v", err))
+		return
+	}
 
-	entries := h.buildTickerEntries(dbMatches)
+	entries := make([]tickerEntry, 0, len(games))
+	for _, g := range games {
+		entries = append(entries, tickerEntry{
+			ID:          g.ID,
+			HomeTeam:    g.HomeTeamName(),
+			AwayTeam:    g.AwayTeamName(),
+			Group:       g.Group,
+			Kickoff:     parseLocalDate(g.LocalDate),
+			Status:      tickerStatus(g.Finished, g.TimeElapsed),
+			TimeElapsed: g.TimeElapsed,
+			HomeScore:   g.HomeScore,
+			AwayScore:   g.AwayScore,
+		})
+	}
+
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].Kickoff < entries[j].Kickoff
 	})
 
 	respondJSON(w, http.StatusOK, entries)
+}
+
+func parseLocalDate(s string) string {
+	layouts := []string{
+		time.RFC3339,
+		"2006-01-02T15:04:05",
+		"2006-01-02 15:04:05",
+		"2006-01-02",
+	}
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, strings.TrimSpace(s)); err == nil {
+			return t.Format(time.RFC3339)
+		}
+	}
+	return s
 }
 
 func (h *TickerHandler) queryTodayMatches(ctx context.Context, todayStart, todayEnd time.Time) ([]dbMatch, error) {
@@ -229,6 +257,8 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 		AwayScore   string `json:"away_score"`
 		Finished    string `json:"finished"`
 		TimeElapsed string `json:"time_elapsed"`
+		LocalDate   string `json:"local_date"`
+		Group       string `json:"group"`
 	}
 
 	var apiRaw []apiGameEntry
@@ -253,6 +283,8 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 					AwayScore:   g.AwayScore,
 					Finished:    g.Finished,
 					TimeElapsed: g.TimeElapsed,
+					LocalDate:   g.LocalDate,
+					Group:       g.Group,
 				})
 			}
 		}
@@ -270,6 +302,8 @@ func (h *TickerHandler) BannerDebug(w http.ResponseWriter, r *http.Request) {
 					AwayScore:   g.AwayScore,
 					Finished:    g.Finished,
 					TimeElapsed: g.TimeElapsed,
+					LocalDate:   g.LocalDate,
+					Group:       g.Group,
 				})
 			}
 		}
