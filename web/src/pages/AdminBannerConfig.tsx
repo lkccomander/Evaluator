@@ -56,7 +56,11 @@ export default function AdminBannerConfig() {
   const [data, setData] = useState<DebugResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [speed, setSpeed] = useState(getStoredSpeed)
+  const [sliderPos, setSliderPos] = useState(() => {
+    const s = getStoredSpeed()
+    return 1860 - s
+  })
+  const speed = 1860 - sliderPos
 
   useEffect(() => {
     localStorage.setItem(TICKER_SPEED_KEY, speed.toString())
@@ -94,13 +98,13 @@ export default function AdminBannerConfig() {
           min={60}
           max={1800}
           step={30}
-          value={speed}
-          onChange={e => setSpeed(parseInt(e.target.value, 10))}
+          value={sliderPos}
+          onChange={e => setSliderPos(parseInt(e.target.value, 10))}
           className="w-full accent-gold"
         />
         <div className="flex justify-between text-xs text-muted mt-1">
-          <span>Rápido</span>
           <span>Lento</span>
+          <span>Rápido</span>
         </div>
       </div>
 
