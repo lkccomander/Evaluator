@@ -170,6 +170,14 @@ func matchInWindow(localDate string, crNow time.Time, crLoc *time.Location) bool
 	if s == "" {
 		return true
 	}
+
+	todayStr := crNow.Format("2006-01-02")
+	tomorrowStr := crNow.AddDate(0, 0, 1).Format("2006-01-02")
+
+	if strings.Contains(s, todayStr) || strings.Contains(s, tomorrowStr) {
+		return true
+	}
+
 	layouts := []string{
 		time.RFC3339,
 		"2006-01-02T15:04:05",
