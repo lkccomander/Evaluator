@@ -7,7 +7,7 @@ function getStoredSpeed(): number {
   const v = localStorage.getItem(TICKER_SPEED_KEY)
   if (v) {
     const n = parseInt(v, 10)
-    if (!isNaN(n) && n >= 60 && n <= 3600) return n
+    if (!isNaN(n) && n >= 38 && n <= 3600) return n
   }
   return 960
 }
@@ -58,9 +58,9 @@ export default function AdminBannerConfig() {
   const [error, setError] = useState('')
   const [sliderPos, setSliderPos] = useState(() => {
     const s = getStoredSpeed()
-    return 1860 - s
+    return 1800 - Math.round((1800 - s) * 1740 / 1762)
   })
-  const speed = 1860 - sliderPos
+  const speed = Math.round(1800 - 1762 * (sliderPos - 60) / 1740)
 
   useEffect(() => {
     localStorage.setItem(TICKER_SPEED_KEY, speed.toString())

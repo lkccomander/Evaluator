@@ -110,7 +110,7 @@ export default function GameTicker() {
     const applySpeed = (s?: number) => {
       const speed = s ?? (() => {
         const v = localStorage.getItem('ticker_speed')
-        if (v) { const n = parseInt(v, 10); if (!isNaN(n) && n >= 60 && n <= 3600) return n }
+        if (v) { const n = parseInt(v, 10); if (!isNaN(n) && n >= 38 && n <= 3600) return n }
         return 960
       })()
       if (trackRef.current) {
