@@ -1,5 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { request, authToken } from '../api/client'
+
+const TICKER_SPEED_KEY = 'ticker_speed'
+
+function getStoredSpeed(): number {
+  const v = localStorage.getItem(TICKER_SPEED_KEY)
+  if (v) {
+    const n = parseInt(v, 10)
+    if (!isNaN(n) && n >= 60 && n <= 3600) return n
+  }
+  return 960
+}
 
 interface ApiGameEntry {
   id: string
@@ -45,6 +56,12 @@ export default function AdminBannerConfig() {
   const [data, setData] = useState<DebugResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [speed, setSpeed] = useState(getStoredSpeed)
+
+  useEffect(() => {
+    localStorage.setItem(TICKER_SPEED_KEY, speed.toString())
+    window.dispatchEvent(new CustomEvent('opencode-speed', { detail: speed }))
+  }, [speed])
 
   const fetchDebug = async () => {
     setLoading(true)
@@ -64,6 +81,28 @@ export default function AdminBannerConfig() {
   return (
     <div>
       <h1 className="text-lg font-bold mb-4">Configuración del Banner</h1>
+
+      <div className="mb-6 bg-surface-card border border-surface-border rounded-lg p-4">
+        <label className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium">Velocidad del ticker</span>
+          <span className="text-sm text-muted font-mono tabular-nums">
+            {speed < 120 ? '⚡ Rápido' : speed > 600 ? '🐢 Lento' : 'Normal'} ({speed}s)
+          </span>
+        </label>
+        <input
+          type="range"
+          min={60}
+          max={1800}
+          step={30}
+          value={speed}
+          onChange={e => setSpeed(parseInt(e.target.value, 10))}
+          className="w-full accent-gold"
+        />
+        <div className="flex justify-between text-xs text-muted mt-1">
+          <span>Rápido</span>
+          <span>Lento</span>
+        </div>
+      </div>
 
       <div className="flex gap-3 mb-6">
         <button

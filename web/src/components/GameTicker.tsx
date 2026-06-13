@@ -103,6 +103,25 @@ export default function GameTicker() {
   const goalFlashIds = useRef<Set<string | number>>(new Set())
   const [, forceRender] = useState(0)
   const [chantActive, setChantActive] = useState(false)
+  const trackRef = useRef<HTMLDivElement>(null)
+
+  // Speed control from localStorage + admin panel
+  useEffect(() => {
+    const applySpeed = (s?: number) => {
+      const speed = s ?? (() => {
+        const v = localStorage.getItem('ticker_speed')
+        if (v) { const n = parseInt(v, 10); if (!isNaN(n) && n >= 60 && n <= 3600) return n }
+        return 960
+      })()
+      if (trackRef.current) {
+        trackRef.current.style.animationDuration = `${speed}s`
+      }
+    }
+    applySpeed()
+    const handler = (e: Event) => applySpeed((e as CustomEvent).detail)
+    window.addEventListener('opencode-speed', handler)
+    return () => window.removeEventListener('opencode-speed', handler)
+  }, [])
 
   const { data: games = [] } = useQuery({
     queryKey: ['ticker', 'today'],
@@ -188,7 +207,7 @@ export default function GameTicker() {
         ))}
       </div>
       <div className="ticker-wrap py-2">
-        <div className="ticker-track">
+        <div className="ticker-track" ref={trackRef}>
           {allItems.map(item => <TickerSpan key={`${item.id}-0`} item={item} />)}
           {chantItem}
           {allItems.map(item => <TickerSpan key={`${item.id}-1`} item={item} />)}
