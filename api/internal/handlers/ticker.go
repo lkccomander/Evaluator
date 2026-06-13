@@ -129,7 +129,8 @@ func (h *TickerHandler) Today(w http.ResponseWriter, r *http.Request) {
 	entries := make([]tickerEntry, 0, len(games))
 	for _, g := range games {
 		md := g.MatchDate()
-		if !matchInWindow(md, crNow, h.TZ) {
+		tz := g.Timezone()
+		if !matchInWindow(md, tz, crNow, h.TZ) {
 			continue
 		}
 		entries = append(entries, tickerEntry{
@@ -137,7 +138,7 @@ func (h *TickerHandler) Today(w http.ResponseWriter, r *http.Request) {
 			HomeTeam:    g.HomeTeamName(),
 			AwayTeam:    g.AwayTeamName(),
 			Group:       g.Group,
-			Kickoff:     parseLocalDate(md),
+			Kickoff:     parseLocalDate(md, tz),
 			Status:      tickerStatus(g.Finished, g.TimeElapsed),
 			TimeElapsed: g.TimeElapsed,
 			HomeScore:   g.HomeScore,
@@ -153,9 +154,15 @@ func (h *TickerHandler) Today(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, entries)
 }
 
-func parseLocalDate(s string) string {
+func parseLocalDate(s string, zone string) string {
 	if s == "" {
 		return ""
+	}
+	loc := time.UTC
+	if zone != "" {
+		if l, err := time.LoadLocation(zone); err == nil {
+			loc = l
+		}
 	}
 	layouts := []string{
 		"01/02/2006 15:04",
@@ -166,14 +173,14 @@ func parseLocalDate(s string) string {
 		"2006-01-02",
 	}
 	for _, layout := range layouts {
-		if t, err := time.Parse(layout, strings.TrimSpace(s)); err == nil {
-			return t.Format(time.RFC3339)
+		if t, err := time.ParseInLocation(layout, strings.TrimSpace(s), loc); err == nil {
+			return t.UTC().Format(time.RFC3339)
 		}
 	}
 	return s
 }
 
-func matchInWindow(dateStr string, crNow time.Time, crLoc *time.Location) bool {
+func matchInWindow(dateStr string, zone string, crNow time.Time, crLoc *time.Location) bool {
 	s := strings.TrimSpace(dateStr)
 	if s == "" {
 		return true
@@ -186,6 +193,12 @@ func matchInWindow(dateStr string, crNow time.Time, crLoc *time.Location) bool {
 		return true
 	}
 
+	loc := time.UTC
+	if zone != "" {
+		if l, err := time.LoadLocation(zone); err == nil {
+			loc = l
+		}
+	}
 	layouts := []string{
 		"01/02/2006 15:04",
 		"01/02/2006",
@@ -195,7 +208,7 @@ func matchInWindow(dateStr string, crNow time.Time, crLoc *time.Location) bool {
 		"2006-01-02",
 	}
 	for _, layout := range layouts {
-		if t, err := time.Parse(layout, s); err == nil {
+		if t, err := time.ParseInLocation(layout, s, loc); err == nil {
 			tInCR := t.In(crLoc)
 			todayStart := time.Date(crNow.Year(), crNow.Month(), crNow.Day(), 0, 0, 0, 0, crLoc)
 			tomorrowEnd := todayStart.AddDate(0, 0, 1)
