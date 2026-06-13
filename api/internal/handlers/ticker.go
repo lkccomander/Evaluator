@@ -156,6 +156,8 @@ func parseLocalDate(s string) string {
 		return ""
 	}
 	layouts := []string{
+		"01/02/2006 15:04",
+		"01/02/2006",
 		time.RFC3339,
 		"2006-01-02T15:04:05",
 		"2006-01-02 15:04:05",
@@ -177,12 +179,17 @@ func matchInWindow(dateStr string, crNow time.Time, crLoc *time.Location) bool {
 
 	todayStr := crNow.Format("2006-01-02")
 	tomorrowStr := crNow.AddDate(0, 0, 1).Format("2006-01-02")
+	todayMMDD := crNow.Format("01/02/2006")
+	tomorrowMMDD := crNow.AddDate(0, 0, 1).Format("01/02/2006")
 
-	if strings.Contains(s, todayStr) || strings.Contains(s, tomorrowStr) {
+	if strings.Contains(s, todayStr) || strings.Contains(s, tomorrowStr) ||
+		strings.Contains(s, todayMMDD) || strings.Contains(s, tomorrowMMDD) {
 		return true
 	}
 
 	layouts := []string{
+		"01/02/2006 15:04",
+		"01/02/2006",
 		time.RFC3339,
 		"2006-01-02T15:04:05",
 		"2006-01-02 15:04:05",
