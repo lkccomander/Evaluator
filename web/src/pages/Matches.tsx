@@ -29,6 +29,7 @@ export default function Matches() {
   })
 
   const chartVisibility = (publicSettings?.prediction_chart_visibility || 'locked_only') as 'always' | 'locked_only'
+  const showPredictionNames = publicSettings?.show_prediction_names === 'true'
 
   const predMap = new Map(
     predictions?.map(p => [p.match_id, { home: p.home_score_pred, away: p.away_score_pred }]) ?? [],
@@ -74,6 +75,7 @@ export default function Matches() {
               userPrediction={predMap.get(m.id)}
               leagueId={user?.league_id ?? undefined}
               chartVisibility={chartVisibility}
+              showPredictionNames={showPredictionNames}
             />
           ))}
         </div>

@@ -19,12 +19,12 @@ export default function AdminSettings() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleChange = async (value: string) => {
+  const handleChange = async (key: string, value: string) => {
     setSaving(true)
     setError('')
     try {
-      await updateSetting('prediction_chart_visibility', value)
-      setSettings(prev => prev ? { ...prev, prediction_chart_visibility: value } : prev)
+      await updateSetting(key, value)
+      setSettings(prev => prev ? { ...prev, [key]: value } : prev)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar')
     }
@@ -37,7 +37,7 @@ export default function AdminSettings() {
     <div>
       <h1 className="text-lg font-bold mb-4">Configuración</h1>
 
-      <div className="bg-surface-card border border-surface-border rounded-lg p-4">
+      <div className="bg-surface-card border border-surface-border rounded-lg p-4 mb-4">
         <label className="block text-sm font-medium mb-3">Visibilidad de gráficos de pronósticos</label>
         <div className="flex flex-col gap-2">
           {OPTIONS.map(opt => (
@@ -47,7 +47,7 @@ export default function AdminSettings() {
                 name="chart_visibility"
                 value={opt.value}
                 checked={settings?.prediction_chart_visibility === opt.value}
-                onChange={() => handleChange(opt.value)}
+                onChange={() => handleChange('prediction_chart_visibility', opt.value)}
                 disabled={saving}
                 className="accent-gold"
               />
@@ -55,6 +55,19 @@ export default function AdminSettings() {
             </label>
           ))}
         </div>
+      </div>
+
+      <div className="bg-surface-card border border-surface-border rounded-lg p-4">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={settings?.show_prediction_names === 'true'}
+            onChange={e => handleChange('show_prediction_names', e.target.checked ? 'true' : 'false')}
+            disabled={saving}
+            className="accent-gold w-4 h-4"
+          />
+          <span className="text-sm font-medium">Mostrar nombres en lista de pronósticos</span>
+        </label>
         {saving && <p className="text-xs text-muted mt-2">Guardando…</p>}
         {error && <p className="text-error text-xs mt-2">{error}</p>}
       </div>

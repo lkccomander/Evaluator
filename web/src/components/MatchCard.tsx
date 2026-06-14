@@ -6,6 +6,7 @@ import { submitPrediction } from '../api/predictions'
 import Countdown from './Countdown'
 import { TeamName } from './TeamFlag'
 import PredictionChartModal from './PredictionChartModal'
+import PredictionsListModal from './PredictionsListModal'
 
 export default function MatchCard({
   match,
@@ -13,12 +14,14 @@ export default function MatchCard({
   userPrediction,
   leagueId,
   chartVisibility = 'locked_only',
+  showPredictionNames = false,
 }: {
   match: Match
   userHasLeague: boolean
   userPrediction?: { home: number; away: number } | null
   leagueId?: string
   chartVisibility?: 'always' | 'locked_only'
+  showPredictionNames?: boolean
 }) {
   const [home, setHome] = useState(userPrediction?.home?.toString() ?? '')
   const [away, setAway] = useState(userPrediction?.away?.toString() ?? '')
@@ -26,6 +29,7 @@ export default function MatchCard({
   const [error, setError] = useState('')
   const [stats, setStats] = useState<PredictionStats | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [predictionsModalOpen, setPredictionsModalOpen] = useState(false)
 
   useEffect(() => {
     setHome(userPrediction?.home?.toString() ?? '')
@@ -171,12 +175,25 @@ export default function MatchCard({
           📊Estadisticas
         </button>
       )}
+      {leagueId && (match.locked || match.status === 'finished') && (
+        <button onClick={() => setPredictionsModalOpen(true)} className="text-xs text-gold hover:underline text-center min-h-[44px] flex items-center justify-center">
+          📋Pronosticos
+        </button>
+      )}
       {error && <p className="text-error text-xs text-center">{error}</p>}
       {modalOpen && stats && (
         <PredictionChartModal
           match={match}
           data={stats}
           onClose={() => setModalOpen(false)}
+        />
+      )}
+      {predictionsModalOpen && (
+        <PredictionsListModal
+          match={match}
+          leagueId={leagueId}
+          showNames={showPredictionNames}
+          onClose={() => setPredictionsModalOpen(false)}
         />
       )}
     </div>

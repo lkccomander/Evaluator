@@ -98,6 +98,7 @@ func main() {
 			r.Get("/", matchH.List)
 			r.Get("/{id}", matchH.Get)
 			r.Get("/{id}/prediction-stats", matchH.PredictionStats)
+			r.Get("/{id}/predictions-list", matchH.PredictionsList)
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.Auth(authSvc))

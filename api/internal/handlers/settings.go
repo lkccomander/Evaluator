@@ -33,6 +33,7 @@ func (h *SettingsHandler) List(w http.ResponseWriter, r *http.Request) {
 
 var publicSettingsKeys = map[string]bool{
 	"prediction_chart_visibility": true,
+	"show_prediction_names":       true,
 }
 
 func (h *SettingsHandler) ListPublic(w http.ResponseWriter, r *http.Request) {

@@ -264,3 +264,86 @@ func (h *MatchHandler) PredictionStats(w http.ResponseWriter, r *http.Request) {
 		"total":  local + empate + visita,
 	})
 }
+
+type predictionEntry struct {
+	DisplayName    *string `json:"display_name,omitempty"`
+	HomeScorePred  int     `json:"home_score_pred"`
+	AwayScorePred  int     `json:"away_score_pred"`
+}
+
+func (h *MatchHandler) PredictionsList(w http.ResponseWriter, r *http.Request) {
+	matchIDStr := chi.URLParam(r, "id")
+	matchID, err := uuid.Parse(matchIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid match id")
+		return
+	}
+
+	leagueIDStr := r.URL.Query().Get("league_id")
+	showNames := r.URL.Query().Get("show_names") == "true"
+
+	var rows pgx.Rows
+
+	if leagueIDStr != "" {
+		leagueID, err := uuid.Parse(leagueIDStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "invalid league_id")
+			return
+		}
+		if showNames {
+			rows, err = h.DB.Query(r.Context(),
+				`SELECT u.display_name, p.home_score_pred, p.away_score_pred
+				 FROM predictions p
+				 JOIN users u ON p.user_id = u.id
+				 WHERE p.match_id = $1 AND u.league_id = $2
+				 ORDER BY u.display_name ASC NULLS LAST, u.username ASC`, matchID, leagueID)
+		} else {
+			rows, err = h.DB.Query(r.Context(),
+				`SELECT p.home_score_pred, p.away_score_pred
+				 FROM predictions p
+				 JOIN users u ON p.user_id = u.id
+				 WHERE p.match_id = $1 AND u.league_id = $2
+				 ORDER BY u.display_name ASC NULLS LAST, u.username ASC`, matchID, leagueID)
+		}
+	} else {
+		if showNames {
+			rows, err = h.DB.Query(r.Context(),
+				`SELECT u.display_name, p.home_score_pred, p.away_score_pred
+				 FROM predictions p
+				 JOIN users u ON p.user_id = u.id
+				 WHERE p.match_id = $1
+				 ORDER BY u.display_name ASC NULLS LAST, u.username ASC`, matchID)
+		} else {
+			rows, err = h.DB.Query(r.Context(),
+				`SELECT p.home_score_pred, p.away_score_pred
+				 FROM predictions p
+				 WHERE p.match_id = $1
+				 ORDER BY p.created_at ASC`, matchID)
+		}
+	}
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "database error")
+		return
+	}
+	defer rows.Close()
+
+	var predictions []predictionEntry
+	for rows.Next() {
+		var e predictionEntry
+		if showNames {
+			if err := rows.Scan(&e.DisplayName, &e.HomeScorePred, &e.AwayScorePred); err != nil {
+				continue
+			}
+		} else {
+			if err := rows.Scan(&e.HomeScorePred, &e.AwayScorePred); err != nil {
+				continue
+			}
+		}
+		predictions = append(predictions, e)
+	}
+	if predictions == nil {
+		predictions = []predictionEntry{}
+	}
+
+	respondJSON(w, http.StatusOK, predictions)
+}
