@@ -266,9 +266,9 @@ func (h *MatchHandler) PredictionStats(w http.ResponseWriter, r *http.Request) {
 }
 
 type predictionEntry struct {
-	DisplayName    *string `json:"display_name,omitempty"`
-	HomeScorePred  int     `json:"home_score_pred"`
-	AwayScorePred  int     `json:"away_score_pred"`
+	DisplayName    string `json:"display_name,omitempty"`
+	HomeScorePred  int    `json:"home_score_pred"`
+	AwayScorePred  int    `json:"away_score_pred"`
 }
 
 func (h *MatchHandler) PredictionsList(w http.ResponseWriter, r *http.Request) {
@@ -292,7 +292,7 @@ func (h *MatchHandler) PredictionsList(w http.ResponseWriter, r *http.Request) {
 		}
 		if showNames {
 			rows, err = h.DB.Query(r.Context(),
-				`SELECT u.display_name, p.home_score_pred, p.away_score_pred
+				`SELECT COALESCE(u.display_name, u.username), p.home_score_pred, p.away_score_pred
 				 FROM predictions p
 				 JOIN users u ON p.user_id = u.id
 				 WHERE p.match_id = $1 AND u.league_id = $2
@@ -308,7 +308,7 @@ func (h *MatchHandler) PredictionsList(w http.ResponseWriter, r *http.Request) {
 	} else {
 		if showNames {
 			rows, err = h.DB.Query(r.Context(),
-				`SELECT u.display_name, p.home_score_pred, p.away_score_pred
+				`SELECT COALESCE(u.display_name, u.username), p.home_score_pred, p.away_score_pred
 				 FROM predictions p
 				 JOIN users u ON p.user_id = u.id
 				 WHERE p.match_id = $1
