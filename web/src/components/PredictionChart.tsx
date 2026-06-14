@@ -39,7 +39,7 @@ export default function PredictionChart({ data, compact = false }: { data: Predi
           {!compact && (
             <Tooltip
               formatter={(value: unknown, name: unknown) => [value as number, LABELS[name as keyof typeof LABELS]]}
-              contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 13 }}
+              contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 13, color: '#eab308' }}
               labelStyle={{ display: 'none' }}
             />
           )}
