@@ -224,14 +224,34 @@ func (h *MatchHandler) PredictionStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	leagueIDStr := r.URL.Query().Get("league_id")
+
 	var local, empate, visita int
-	err = h.DB.QueryRow(r.Context(),
-		`SELECT
-		   COUNT(*) FILTER (WHERE home_score_pred > away_score_pred),
-		   COUNT(*) FILTER (WHERE home_score_pred = away_score_pred),
-		   COUNT(*) FILTER (WHERE home_score_pred < away_score_pred)
-		 FROM predictions WHERE match_id = $1`, matchID,
-	).Scan(&local, &empate, &visita)
+
+	if leagueIDStr != "" {
+		leagueID, err := uuid.Parse(leagueIDStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "invalid league_id")
+			return
+		}
+		err = h.DB.QueryRow(r.Context(),
+			`SELECT
+			   COUNT(*) FILTER (WHERE p.home_score_pred > p.away_score_pred),
+			   COUNT(*) FILTER (WHERE p.home_score_pred = p.away_score_pred),
+			   COUNT(*) FILTER (WHERE p.home_score_pred < p.away_score_pred)
+			 FROM predictions p
+			 JOIN users u ON p.user_id = u.id
+			 WHERE p.match_id = $1 AND u.league_id = $2`, matchID, leagueID,
+		).Scan(&local, &empate, &visita)
+	} else {
+		err = h.DB.QueryRow(r.Context(),
+			`SELECT
+			   COUNT(*) FILTER (WHERE home_score_pred > away_score_pred),
+			   COUNT(*) FILTER (WHERE home_score_pred = away_score_pred),
+			   COUNT(*) FILTER (WHERE home_score_pred < away_score_pred)
+			 FROM predictions WHERE match_id = $1`, matchID,
+		).Scan(&local, &empate, &visita)
+	}
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "database error")
 		return

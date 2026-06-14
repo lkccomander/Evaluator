@@ -72,6 +72,7 @@ export default function Matches() {
               match={m}
               userHasLeague={!!user?.league_id}
               userPrediction={predMap.get(m.id)}
+              leagueId={user?.league_id ?? undefined}
               chartVisibility={chartVisibility}
             />
           ))}

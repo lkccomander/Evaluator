@@ -12,11 +12,13 @@ export default function MatchCard({
   match,
   userHasLeague,
   userPrediction,
+  leagueId,
   chartVisibility = 'locked_only',
 }: {
   match: Match
   userHasLeague: boolean
   userPrediction?: { home: number; away: number } | null
+  leagueId?: string
   chartVisibility?: 'always' | 'locked_only'
 }) {
   const [home, setHome] = useState(userPrediction?.home?.toString() ?? '')
@@ -39,9 +41,9 @@ export default function MatchCard({
       return
     }
     let cancelled = false
-    getPredictionStats(match.id).then(data => { if (!cancelled) setStats(data) }).catch(() => {})
+    getPredictionStats(match.id, leagueId).then(data => { if (!cancelled) setStats(data) }).catch(() => {})
     return () => { cancelled = true }
-  }, [match.id, showChart])
+  }, [match.id, showChart, leagueId])
 
   const canPredict = userHasLeague && !match.locked && match.status === 'upcoming'
   const msUntilKickoff = new Date(match.kickoff_utc).getTime() - Date.now()

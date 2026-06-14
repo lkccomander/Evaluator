@@ -7,6 +7,7 @@ export interface PredictionStats {
   total: number
 }
 
-export function getPredictionStats(matchId: string) {
-  return request<PredictionStats>(`/matches/${matchId}/prediction-stats`)
+export function getPredictionStats(matchId: string, leagueId?: string) {
+  const qs = leagueId ? `?league_id=${leagueId}` : ''
+  return request<PredictionStats>(`/matches/${matchId}/prediction-stats${qs}`)
 }
