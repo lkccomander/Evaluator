@@ -13,6 +13,8 @@ import AdminUsers from './pages/AdminUsers'
 import AdminBannerConfig from './pages/AdminBannerConfig'
 import AdminSettings from './pages/AdminSettings'
 
+import Results from './pages/Results'
+
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) return null
@@ -38,6 +40,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/join-league" element={<Protected><JoinLeague /></Protected>} />
           <Route path="/matches" element={<Protected><Matches /></Protected>} />
+          <Route path="/results" element={<Protected><Results /></Protected>} />
           <Route path="/my-predictions" element={<Protected><MyPredictions /></Protected>} />
           <Route path="/leaderboard" element={<Protected><Leaderboard /></Protected>} />
           <Route path="/leaderboard/my-league" element={<Protected><Leaderboard /></Protected>} />
