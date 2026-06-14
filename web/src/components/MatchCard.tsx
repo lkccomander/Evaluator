@@ -5,7 +5,6 @@ import { getPredictionStats } from '../api/predictionStats'
 import { submitPrediction } from '../api/predictions'
 import Countdown from './Countdown'
 import { TeamName } from './TeamFlag'
-import PredictionChart from './PredictionChart'
 import PredictionChartModal from './PredictionChartModal'
 
 export default function MatchCard({
@@ -168,8 +167,8 @@ export default function MatchCard({
         )}
       </div>
       {stats && showChart && (
-        <button onClick={() => setModalOpen(true)} className="w-full text-left cursor-pointer">
-          <PredictionChart data={stats} compact />
+        <button onClick={() => setModalOpen(true)} className="text-xs text-gold hover:underline text-center min-h-[44px] flex items-center justify-center">
+          📊Estadisticas
         </button>
       )}
       {error && <p className="text-error text-xs text-center">{error}</p>}
