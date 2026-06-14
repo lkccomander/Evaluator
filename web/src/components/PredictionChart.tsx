@@ -36,11 +36,13 @@ export default function PredictionChart({ data, compact = false }: { data: Predi
             tickLine={false}
           />
           <YAxis allowDecimals={false} tick={{ fontSize: compact ? 10 : 12, fill: '#94a3b8' }} axisLine={{ stroke: '#334155' }} tickLine={false} />
-          <Tooltip
-            formatter={(value: unknown, name: unknown) => [value as number, LABELS[name as keyof typeof LABELS]]}
-            contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 13 }}
-            labelStyle={{ display: 'none' }}
-          />
+          {!compact && (
+            <Tooltip
+              formatter={(value: unknown, name: unknown) => [value as number, LABELS[name as keyof typeof LABELS]]}
+              contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 13 }}
+              labelStyle={{ display: 'none' }}
+            />
+          )}
           <Bar dataKey="value" radius={[4, 4, 0, 0]}>
             {chartData.map((entry, index) => (
               <Cell key={index} fill={entry.fill} />
