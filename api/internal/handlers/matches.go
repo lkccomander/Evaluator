@@ -215,3 +215,32 @@ func (h *MatchHandler) EnterResult(w http.ResponseWriter, r *http.Request) {
 		"predictions_updated": result.PredictionsUpdated,
 	})
 }
+
+func (h *MatchHandler) PredictionStats(w http.ResponseWriter, r *http.Request) {
+	matchIDStr := chi.URLParam(r, "id")
+	matchID, err := uuid.Parse(matchIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid match id")
+		return
+	}
+
+	var local, empate, visita int
+	err = h.DB.QueryRow(r.Context(),
+		`SELECT
+		   COUNT(*) FILTER (WHERE home_score_pred > away_score_pred),
+		   COUNT(*) FILTER (WHERE home_score_pred = away_score_pred),
+		   COUNT(*) FILTER (WHERE home_score_pred < away_score_pred)
+		 FROM predictions WHERE match_id = $1`, matchID,
+	).Scan(&local, &empate, &visita)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "database error")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]int{
+		"local":  local,
+		"empate": empate,
+		"visita": visita,
+		"total":  local + empate + visita,
+	})
+}

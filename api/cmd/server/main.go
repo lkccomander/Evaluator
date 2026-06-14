@@ -46,6 +46,7 @@ func main() {
 	userH := &handlers.UserHandler{DB: pool}
 	tickerH := &handlers.TickerHandler{Provider: worldCup26Client, TZ: cfg.CostaRicaTZ, DB: pool}
 	bannerH := &handlers.BannerHandler{DB: pool}
+	settingsH := &handlers.SettingsHandler{DB: pool}
 
 	r := chi.NewRouter()
 
@@ -62,6 +63,7 @@ func main() {
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/ticker/today", tickerH.Today)
+		r.Get("/public/settings", settingsH.ListPublic)
 
 		r.Get("/banner", bannerH.ListMessages)
 
@@ -95,6 +97,7 @@ func main() {
 		r.Route("/matches", func(r chi.Router) {
 			r.Get("/", matchH.List)
 			r.Get("/{id}", matchH.Get)
+			r.Get("/{id}/prediction-stats", matchH.PredictionStats)
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.Auth(authSvc))
@@ -108,6 +111,8 @@ func main() {
 			r.Use(middleware.Auth(authSvc))
 			r.Use(middleware.Admin)
 			r.Get("/banner-debug", tickerH.BannerDebug)
+			r.Get("/settings", settingsH.List)
+			r.Put("/settings", settingsH.Update)
 		})
 
 		r.Route("/users", func(r chi.Router) {

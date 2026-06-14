@@ -16,6 +16,7 @@ const adminItems = [
   { path: '/admin/results', label: 'Admin Resultados' },
   { path: '/admin/users', label: 'Admin Usuarios' },
   { path: '/admin/banner-config', label: 'Config Banner' },
+  { path: '/admin/settings', label: 'Config' },
 ]
 
 export default function Layout({ children }: { children: React.ReactNode }) {

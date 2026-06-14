@@ -1,27 +1,47 @@
 import { useEffect, useState } from 'react'
 import type { Match } from '../api/matches'
+import type { PredictionStats } from '../api/predictionStats'
+import { getPredictionStats } from '../api/predictionStats'
 import { submitPrediction } from '../api/predictions'
 import Countdown from './Countdown'
 import { TeamName } from './TeamFlag'
+import PredictionChart from './PredictionChart'
+import PredictionChartModal from './PredictionChartModal'
 
 export default function MatchCard({
   match,
   userHasLeague,
   userPrediction,
+  chartVisibility = 'locked_only',
 }: {
   match: Match
   userHasLeague: boolean
   userPrediction?: { home: number; away: number } | null
+  chartVisibility?: 'always' | 'locked_only'
 }) {
   const [home, setHome] = useState(userPrediction?.home?.toString() ?? '')
   const [away, setAway] = useState(userPrediction?.away?.toString() ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [stats, setStats] = useState<PredictionStats | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
 
   useEffect(() => {
     setHome(userPrediction?.home?.toString() ?? '')
     setAway(userPrediction?.away?.toString() ?? '')
   }, [match.id, userPrediction?.home, userPrediction?.away])
+
+  const showChart = chartVisibility === 'always' || match.locked || match.status === 'finished'
+
+  useEffect(() => {
+    if (!showChart) {
+      setStats(null)
+      return
+    }
+    let cancelled = false
+    getPredictionStats(match.id).then(data => { if (!cancelled) setStats(data) }).catch(() => {})
+    return () => { cancelled = true }
+  }, [match.id, showChart])
 
   const canPredict = userHasLeague && !match.locked && match.status === 'upcoming'
   const msUntilKickoff = new Date(match.kickoff_utc).getTime() - Date.now()
@@ -145,7 +165,19 @@ export default function MatchCard({
           </span>
         )}
       </div>
+      {stats && showChart && (
+        <button onClick={() => setModalOpen(true)} className="w-full text-left cursor-pointer">
+          <PredictionChart data={stats} compact />
+        </button>
+      )}
       {error && <p className="text-error text-xs text-center">{error}</p>}
+      {modalOpen && stats && (
+        <PredictionChartModal
+          match={match}
+          data={stats}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
     </div>
   )
 }

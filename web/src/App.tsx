@@ -11,6 +11,7 @@ import AdminLeagues from './pages/AdminLeagues'
 import AdminResults from './pages/AdminResults'
 import AdminUsers from './pages/AdminUsers'
 import AdminBannerConfig from './pages/AdminBannerConfig'
+import AdminSettings from './pages/AdminSettings'
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="/admin/results" element={<AdminRoute><AdminResults /></AdminRoute>} />
           <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
           <Route path="/admin/banner-config" element={<AdminRoute><AdminBannerConfig /></AdminRoute>} />
+          <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
         </Routes>
       </Layout>
     </BrowserRouter>

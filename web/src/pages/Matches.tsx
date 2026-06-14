@@ -4,6 +4,7 @@ import { getMyPredictions } from '../api/predictions'
 import { useAuth } from '../hooks/useAuth'
 import MatchCard from '../components/MatchCard'
 import LeagueBanner from '../components/LeagueBanner'
+import { request } from '../api/client'
 
 export default function Matches() {
   const { user } = useAuth()
@@ -20,6 +21,14 @@ export default function Matches() {
     enabled: !!user?.league_id,
     refetchInterval: 30_000,
   })
+
+  const { data: publicSettings } = useQuery({
+    queryKey: ['public-settings'],
+    queryFn: () => request<Record<string, string>>('/public/settings'),
+    staleTime: 60_000,
+  })
+
+  const chartVisibility = (publicSettings?.prediction_chart_visibility || 'locked_only') as 'always' | 'locked_only'
 
   const predMap = new Map(
     predictions?.map(p => [p.match_id, { home: p.home_score_pred, away: p.away_score_pred }]) ?? [],
@@ -63,6 +72,7 @@ export default function Matches() {
               match={m}
               userHasLeague={!!user?.league_id}
               userPrediction={predMap.get(m.id)}
+              chartVisibility={chartVisibility}
             />
           ))}
         </div>
