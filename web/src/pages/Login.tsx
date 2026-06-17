@@ -16,6 +16,7 @@ const DEFAULT_IMAGES = [
   '/images/uru2.png',
   '/images/uru3.png',
   '/images/spain1.png',
+  '/images/haaland.png',
 ]
 
 export default function Login() {
