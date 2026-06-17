@@ -36,3 +36,26 @@ export function updatePrediction(id: string, homeScorePred: number, awayScorePre
     token: authToken()!,
   })
 }
+
+export interface AdminPlayerPrediction {
+  user_id: string
+  username: string
+  display_name: string | null
+  player_team_name: string
+  home_score_pred: number | null
+  away_score_pred: number | null
+}
+
+export function adminSetPrediction(userId: string, matchId: string, homeScorePred: number, awayScorePred: number) {
+  return request<{ message: string }>('/admin/predictions', {
+    method: 'POST',
+    body: { user_id: userId, match_id: matchId, home_score_pred: homeScorePred, away_score_pred: awayScorePred },
+    token: authToken()!,
+  })
+}
+
+export function getMatchPredictionsWithUsers(matchId: string) {
+  return request<AdminPlayerPrediction[]>(`/admin/predictions/${matchId}`, {
+    token: authToken()!,
+  })
+}

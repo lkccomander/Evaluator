@@ -3,13 +3,16 @@ import { request, authToken } from '../api/client'
 
 const TICKER_SPEED_KEY = 'ticker_speed'
 
+function parseSpeed(v: string | null): number | null {
+  if (!v) return null
+  const n = parseInt(v, 10)
+  if (!isNaN(n) && n >= 38 && n <= 3600) return n
+  return null
+}
+
 function getStoredSpeed(): number {
   const v = localStorage.getItem(TICKER_SPEED_KEY)
-  if (v) {
-    const n = parseInt(v, 10)
-    if (!isNaN(n) && n >= 38 && n <= 3600) return n
-  }
-  return 960
+  return parseSpeed(v) ?? 640
 }
 
 interface ApiGameEntry {
@@ -64,10 +67,41 @@ export default function AdminBannerConfig() {
   })
   const speed = Math.round(1800 - 1762 * (sliderPos - 60) / 1740)
 
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  // Fetch DB speed on mount and override if present
+  useEffect(() => {
+    request<Record<string, string>>('/admin/settings', { token: authToken()! })
+      .then(s => {
+        const s2 = parseSpeed(s.ticker_speed ?? null)
+        if (s2) setSliderPos(1800 - Math.round((1800 - s2) * 1740 / 1762))
+      })
+      .catch(() => {})
+  }, [])
+
+  // Live preview: update localStorage + ticker immediately
   useEffect(() => {
     localStorage.setItem(TICKER_SPEED_KEY, speed.toString())
     window.dispatchEvent(new CustomEvent('opencode-speed', { detail: speed }))
   }, [speed])
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await request('/admin/settings', {
+        method: 'PUT',
+        body: { key: 'ticker_speed', value: speed.toString() },
+        token: authToken()!,
+      })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch {
+      // ignore
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const fetchDebug = async () => {
     setLoading(true)
@@ -108,6 +142,13 @@ export default function AdminBannerConfig() {
           <span>Lento</span>
           <span>Rápido</span>
         </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="mt-3 bg-gold text-black font-semibold px-5 py-2 rounded text-sm disabled:opacity-50 hover:bg-gold-dark transition-colors"
+        >
+          {saving ? 'Guardando…' : saved ? '✓ Guardado' : 'Aplicar'}
+        </button>
       </div>
 
       <div className="flex gap-3 mb-6">

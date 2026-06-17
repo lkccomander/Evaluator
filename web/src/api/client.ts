@@ -82,5 +82,38 @@ function authToken(): string | null {
   return stored || null
 }
 
-export { request, authToken }
+async function uploadFile<T>(path: string, file: File, token: string): Promise<T> {
+  const form = new FormData()
+  form.append('image', file)
+
+  let res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: form,
+  })
+
+  if (res.status === 401) {
+    if (!refreshPromise) refreshPromise = doRefresh()
+    const newToken = await refreshPromise
+    refreshPromise = null
+    if (newToken) {
+      res = await fetch(`${BASE}${path}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${newToken}` },
+        body: form,
+      })
+    } else {
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      window.location.reload()
+      throw new Error('Sesión expirada')
+    }
+  }
+
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+  return data as T
+}
+
+export { request, authToken, uploadFile }
 export type { RequestOptions }

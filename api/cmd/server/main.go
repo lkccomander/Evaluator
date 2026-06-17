@@ -46,7 +46,7 @@ func main() {
 	userH := &handlers.UserHandler{DB: pool}
 	tickerH := &handlers.TickerHandler{Provider: worldCup26Client, TZ: cfg.CostaRicaTZ, DB: pool}
 	bannerH := &handlers.BannerHandler{DB: pool}
-	settingsH := &handlers.SettingsHandler{DB: pool}
+	settingsH := &handlers.SettingsHandler{DB: pool, UploadDir: cfg.UploadDir}
 
 	r := chi.NewRouter()
 
@@ -114,6 +114,16 @@ func main() {
 			r.Get("/banner-debug", tickerH.BannerDebug)
 			r.Get("/settings", settingsH.List)
 			r.Put("/settings", settingsH.Update)
+			r.Get("/carousel-images", settingsH.ListCarouselImages)
+			r.Post("/carousel-images/upload", settingsH.UploadCarouselImage)
+			r.Delete("/carousel-images/{filename}", settingsH.DeleteCarouselImage)
+			r.Post("/predictions", predH.AdminSetPrediction)
+			r.Get("/predictions/{matchId}", predH.AdminListMatchPredictions)
+		})
+
+		r.Get("/uploads/*", func(w http.ResponseWriter, r *http.Request) {
+			fs := http.StripPrefix("/api/v1/uploads/", http.FileServer(http.Dir(cfg.UploadDir+"/carousel")))
+			fs.ServeHTTP(w, r)
 		})
 
 		r.Route("/users", func(r chi.Router) {
@@ -136,6 +146,7 @@ func main() {
 
 		r.Route("/leaderboard", func(r chi.Router) {
 			r.Get("/league/{id}", leaderH.ByLeague)
+			r.Get("/history", leaderH.History)
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.Auth(authSvc))

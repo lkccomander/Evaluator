@@ -19,6 +19,7 @@ type Config struct {
 	WorldCup26BaseURL  string
 	WorldCup26Email    string
 	WorldCup26Password string
+	UploadDir          string
 }
 
 func Load() (*Config, error) {
@@ -49,6 +50,7 @@ func Load() (*Config, error) {
 		WorldCup26BaseURL:  getEnv("WORLDCUP26_API_BASE_URL", "https://worldcup26.ir"),
 		WorldCup26Email:    getEnv("WORLDCUP26_API_EMAIL", ""),
 		WorldCup26Password: getEnv("WORLDCUP26_API_PASSWORD", ""),
+		UploadDir:          getEnv("UPLOAD_DIR", "./uploads"),
 	}, nil
 }
 

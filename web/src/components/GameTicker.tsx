@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getTodayTicker } from '../api/ticker'
 import { getBannerMessages } from '../api/banner'
+import { request } from '../api/client'
 
 type TickerGame = {
   kind: 'game'
@@ -122,13 +123,21 @@ export default function GameTicker() {
   const [chantActive, setChantActive] = useState(false)
   const trackRef = useRef<HTMLDivElement>(null)
 
-  // Speed control from localStorage + admin panel
+  // Speed from DB settings > localStorage > default 640
+  const { data: publicSettings } = useQuery({
+    queryKey: ['public-settings'],
+    queryFn: () => request<Record<string, string>>('/public/settings'),
+    staleTime: 60_000,
+  })
+  const dbSpeed = publicSettings?.ticker_speed ? parseInt(publicSettings.ticker_speed, 10) : null
+
   useEffect(() => {
     const applySpeed = (s?: number) => {
       const speed = s ?? (() => {
+        if (dbSpeed && dbSpeed >= 38 && dbSpeed <= 3600) return dbSpeed
         const v = localStorage.getItem('ticker_speed')
         if (v) { const n = parseInt(v, 10); if (!isNaN(n) && n >= 38 && n <= 3600) return n }
-        return 960
+        return 640
       })()
       if (trackRef.current) {
         trackRef.current.style.animationDuration = `${speed}s`
@@ -138,7 +147,7 @@ export default function GameTicker() {
     const handler = (e: Event) => applySpeed((e as CustomEvent).detail)
     window.addEventListener('opencode-speed', handler)
     return () => window.removeEventListener('opencode-speed', handler)
-  }, [])
+  }, [dbSpeed])
 
   const { data: games = [] } = useQuery({
     queryKey: ['ticker', 'today'],

@@ -200,6 +200,118 @@ func (h *LeaderboardHandler) MyLeague(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, entries)
 }
 
+func (h *LeaderboardHandler) History(w http.ResponseWriter, r *http.Request) {
+	leagueIDStr := r.URL.Query().Get("league_id")
+
+	var leagueID *uuid.UUID
+	if leagueIDStr != "" {
+		parsed, err := uuid.Parse(leagueIDStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "invalid league_id")
+			return
+		}
+		leagueID = &parsed
+	}
+
+	type playerPoint struct {
+		UserID      uuid.UUID `json:"user_id"`
+		Username    string    `json:"username"`
+		PlayerTeam  string    `json:"player_team_name"`
+		TotalPoints int       `json:"total_points"`
+	}
+
+	type dayEntry struct {
+		Date    string        `json:"date"`
+		Players []playerPoint `json:"players"`
+	}
+
+	rows, err := h.DB.Query(r.Context(),
+		`WITH match_dates AS (
+		   SELECT DISTINCT kickoff_utc::date AS match_date
+		   FROM matches
+		   WHERE status = 'finished'
+		   ORDER BY match_date
+		 ),
+		 user_scope AS (
+		   SELECT u.id, u.username, u.player_team_name
+		   FROM users u
+		   WHERE u.is_disabled = FALSE
+		     AND ($1::uuid IS NULL OR u.league_id = $1)
+		 ),
+		 user_match_points AS (
+		   SELECT
+		     us.id AS user_id,
+		     us.username,
+		     us.player_team_name,
+		     md.match_date,
+		     COALESCE(SUM(p.points_earned), 0) AS points
+		   FROM user_scope us
+		   CROSS JOIN match_dates md
+		   LEFT JOIN matches m ON m.kickoff_utc::date = md.match_date AND m.status = 'finished'
+		   LEFT JOIN predictions p ON p.match_id = m.id AND p.user_id = us.id
+		   GROUP BY us.id, us.username, us.player_team_name, md.match_date
+		 )
+		 SELECT user_id, username, player_team_name,
+		        match_date::text AS date,
+		        SUM(points) OVER (
+		          PARTITION BY user_id
+		          ORDER BY match_date
+		          ROWS UNBOUNDED PRECEDING
+		        ) AS total_points
+		 FROM user_match_points
+		 ORDER BY match_date, total_points DESC`,
+		leagueID,
+	)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "database error")
+		return
+	}
+	defer rows.Close()
+
+	type flatRow struct {
+		UserID      uuid.UUID
+		Username    string
+		PlayerTeam  string
+		Date        string
+		TotalPoints int
+	}
+
+	var flat []flatRow
+	for rows.Next() {
+		var r flatRow
+		if err := rows.Scan(&r.UserID, &r.Username, &r.PlayerTeam, &r.Date, &r.TotalPoints); err != nil {
+			respondError(w, http.StatusInternalServerError, "scan error")
+			return
+		}
+		flat = append(flat, r)
+	}
+
+	var result []dayEntry
+	var current *dayEntry
+	for _, r := range flat {
+		if current == nil || r.Date != current.Date {
+			if current != nil {
+				result = append(result, *current)
+			}
+			current = &dayEntry{Date: r.Date, Players: nil}
+		}
+		current.Players = append(current.Players, playerPoint{
+			UserID:      r.UserID,
+			Username:    r.Username,
+			PlayerTeam:  r.PlayerTeam,
+			TotalPoints: r.TotalPoints,
+		})
+	}
+	if current != nil {
+		result = append(result, *current)
+	}
+	if result == nil {
+		result = []dayEntry{}
+	}
+
+	respondJSON(w, http.StatusOK, result)
+}
+
 func (h *LeaderboardHandler) MyGlobalPosition(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r)
 	if !ok {

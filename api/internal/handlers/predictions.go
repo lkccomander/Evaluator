@@ -142,6 +142,99 @@ func (h *PredictionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]string{"message": "prediction updated"})
 }
 
+type adminSetPredictionRequest struct {
+	UserID        string `json:"user_id"`
+	MatchID       string `json:"match_id"`
+	HomeScorePred int    `json:"home_score_pred"`
+	AwayScorePred int    `json:"away_score_pred"`
+}
+
+func (h *PredictionHandler) AdminSetPrediction(w http.ResponseWriter, r *http.Request) {
+	var req adminSetPredictionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.HomeScorePred < 0 || req.AwayScorePred < 0 {
+		respondError(w, http.StatusBadRequest, "scores must be non-negative")
+		return
+	}
+
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid user_id")
+		return
+	}
+	matchID, err := uuid.Parse(req.MatchID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid match_id")
+		return
+	}
+
+	_, err = h.DB.Exec(r.Context(),
+		`INSERT INTO predictions (user_id, match_id, home_score_pred, away_score_pred)
+		 VALUES ($1, $2, $3, $4)
+		 ON CONFLICT (user_id, match_id)
+		 DO UPDATE SET home_score_pred = $3, away_score_pred = $4, updated_at = NOW()`,
+		userID, matchID, req.HomeScorePred, req.AwayScorePred,
+	)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to save prediction")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"message": "prediction saved"})
+}
+
+func (h *PredictionHandler) AdminListMatchPredictions(w http.ResponseWriter, r *http.Request) {
+	matchIDStr := chi.URLParam(r, "matchId")
+	matchID, err := uuid.Parse(matchIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid match id")
+		return
+	}
+
+	type matchPredictionRow struct {
+		UserID        uuid.UUID `json:"user_id"`
+		Username      string    `json:"username"`
+		DisplayName   *string   `json:"display_name"`
+		PlayerTeam    string    `json:"player_team_name"`
+		HomeScorePred *int      `json:"home_score_pred"`
+		AwayScorePred *int      `json:"away_score_pred"`
+	}
+
+	rows, err := h.DB.Query(r.Context(),
+		`SELECT u.id, u.username, u.display_name, u.player_team_name,
+		        p.home_score_pred, p.away_score_pred
+		 FROM users u
+		 LEFT JOIN predictions p ON p.match_id = $1 AND p.user_id = u.id
+		 WHERE u.league_id IS NOT NULL
+		 ORDER BY u.display_name ASC NULLS LAST, u.username ASC`,
+		matchID,
+	)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "database error")
+		return
+	}
+	defer rows.Close()
+
+	var predictions []matchPredictionRow
+	for rows.Next() {
+		var p matchPredictionRow
+		if err := rows.Scan(&p.UserID, &p.Username, &p.DisplayName, &p.PlayerTeam,
+			&p.HomeScorePred, &p.AwayScorePred); err != nil {
+			respondError(w, http.StatusInternalServerError, "scan error")
+			return
+		}
+		predictions = append(predictions, p)
+	}
+	if predictions == nil {
+		predictions = []matchPredictionRow{}
+	}
+
+	respondJSON(w, http.StatusOK, predictions)
+}
+
 func (h *PredictionHandler) GetMy(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r)
 	if !ok {

@@ -31,3 +31,20 @@ export function getMyGlobalPosition() {
     token: authToken()!,
   })
 }
+
+export interface HistoryPlayerPoints {
+  user_id: string
+  username: string
+  player_team_name: string
+  total_points: number
+}
+
+export interface HistoryDayEntry {
+  date: string
+  players: HistoryPlayerPoints[]
+}
+
+export function getLeaderboardHistory(leagueId?: string) {
+  const params = leagueId ? `?league_id=${leagueId}` : ''
+  return request<HistoryDayEntry[]>(`/leaderboard/history${params}`)
+}

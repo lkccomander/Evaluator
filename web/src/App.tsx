@@ -49,6 +49,7 @@ export default function App() {
           <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
           <Route path="/admin/banner-config" element={<AdminRoute><AdminBannerConfig /></AdminRoute>} />
           <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
+
         </Routes>
       </Layout>
     </BrowserRouter>

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getGlobalLeaderboard, getMyLeagueLeaderboard } from '../api/leaderboard'
+import { getGlobalLeaderboard, getMyLeagueLeaderboard, getLeagueLeaderboard, getLeaderboardHistory } from '../api/leaderboard'
 import { listLeagues } from '../api/leagues'
-import { getLeagueLeaderboard } from '../api/leaderboard'
 import { getBannerMessages, postBannerMessage } from '../api/banner'
 import { useAuth } from '../hooks/useAuth'
 import LeaderboardTable from '../components/LeaderboardTable'
+import PointsChart from '../components/PointsChart'
 
 function renderInlineMarkdown(text: string) {
   const tokens = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean)
@@ -318,6 +318,17 @@ export default function Leaderboard() {
     refetchInterval: 60_000,
   })
 
+  const historyLeagueId = view === 'league'
+    ? (isAdmin ? selectedLeagueId || undefined : user?.league_id || undefined)
+    : undefined
+
+  const { data: historyData, isLoading: historyLoading, isError: historyError } = useQuery({
+    queryKey: ['leaderboard', 'history', historyLeagueId],
+    queryFn: () => getLeaderboardHistory(historyLeagueId),
+    enabled: view === 'global' || !!historyLeagueId,
+    refetchInterval: 60_000,
+  })
+
   useEffect(() => {
     if (!isAdmin) return
     if (selectedLeagueId) return
@@ -408,6 +419,11 @@ export default function Leaderboard() {
         ) : (
           <LeaderboardTable entries={entries} showLeague={view === 'global'} />
         )}
+      </div>
+
+      <div className="mt-6 bg-surface-card border border-surface-border rounded-lg p-4">
+        <h2 className="text-sm font-semibold mb-3">Evolución de puntos</h2>
+        <PointsChart data={historyData ?? []} loading={historyLoading} error={historyError} />
       </div>
       <div className="mt-4 rounded-2xl border border-gold/20 bg-[linear-gradient(135deg,rgba(245,158,11,0.08),rgba(20,20,20,0.96)_55%)] px-4 py-3">
         <p className="text-sm text-slate-200">
