@@ -9,7 +9,7 @@ const navItems = [
   { path: '/matches', label: 'Partidos', auth: true },
   { path: '/results', label: 'Resultados', auth: true },
   { path: '/my-predictions', label: 'Mis Pronósticos', auth: true },
-  { path: '/leaderboard', label: 'Leaderboard', auth: false },
+  { path: '/leaderboard', label: 'Leaderboard', auth: true },
   { path: '/status', label: 'Status', auth: false },
 ]
 
