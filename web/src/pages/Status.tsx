@@ -76,7 +76,7 @@ function lastDownFrom(history: APICheckHistory[]): string | null {
   return null
 }
 
-function Bar({ status, ms, idx }: { status: ServiceStatus; ms: number; idx: number }) {
+function Bar({ status, ms }: { status: ServiceStatus; ms: number }) {
   const color = status === 'down' ? 'bg-red-500' : status === 'degraded' ? 'bg-amber-500' : 'bg-green-500'
   const opacity = status === 'operational' ? '0.35' : status === 'degraded' ? '0.7' : '0.65'
   return (
@@ -95,7 +95,7 @@ function HistoryBars({ history }: { history: APICheckHistory[] }) {
   return (
     <div className="flex items-end gap-[3px] mt-3 h-8">
       {history.slice(-72).map((p, i) => (
-        <Bar key={i} status={p.status} ms={p.response_time_ms} idx={i} />
+        <Bar key={i} status={p.status} ms={p.response_time_ms} />
       ))}
     </div>
   )
