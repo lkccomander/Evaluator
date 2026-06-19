@@ -2,12 +2,14 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -130,6 +132,10 @@ func (hc *HealthChecker) loadConfigs(ctx context.Context) ([]HealthCheckConfig, 
 		        expected_status, interval_sec, timeout_ms, enabled
 		 FROM health_check_config WHERE enabled = TRUE`)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "42P01" {
+			return []HealthCheckConfig{}, nil
+		}
 		return nil, fmt.Errorf("query configs: %w", err)
 	}
 	defer rows.Close()
@@ -200,6 +206,10 @@ func (hc *HealthChecker) recordResult(serviceName, status string, ms int, errMsg
 		serviceName, status, ms, errMsg,
 	)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "42P01" {
+			return
+		}
 		log.Printf("health checker: insert result for %s: %v", serviceName, err)
 	}
 }

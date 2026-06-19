@@ -1,12 +1,19 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+func isMissingTable(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "42P01"
+}
 
 type HealthCheckConfig struct {
 	ServiceName string `json:"service_name"`
@@ -53,6 +60,10 @@ func (h *StatusHandler) Services(w http.ResponseWriter, r *http.Request) {
 		 ORDER BY cc.service_name`,
 	)
 	if err != nil {
+		if isMissingTable(err) {
+			respondJSON(w, http.StatusOK, []ServiceStatus{})
+			return
+		}
 		respondError(w, http.StatusInternalServerError, "database error")
 		return
 	}
@@ -112,6 +123,10 @@ func (h *StatusHandler) History(w http.ResponseWriter, r *http.Request) {
 		service, limit,
 	)
 	if err != nil {
+		if isMissingTable(err) {
+			respondJSON(w, http.StatusOK, []CheckHistory{})
+			return
+		}
 		respondError(w, http.StatusInternalServerError, "database error")
 		return
 	}
