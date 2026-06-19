@@ -2,10 +2,20 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 type ServiceStatus = 'operational' | 'degraded' | 'down'
 
-interface CheckPoint {
-  t: number
-  ok: boolean
-  ms: number
+interface APIServiceStatus {
+  service_name: string
+  display_name: string
+  status: ServiceStatus
+  response_time_ms: number
+  error_message: string
+  checked_at: string
+  uptime: string
+}
+
+interface APICheckHistory {
+  status: ServiceStatus
+  response_time_ms: number
+  checked_at: string
 }
 
 interface ServiceState {
@@ -13,70 +23,20 @@ interface ServiceState {
   label: string
   status: ServiceStatus
   ms: number | null
-  history: CheckPoint[]
+  uptime: string
+  history: APICheckHistory[]
+  errorMessage: string
   lastDown: string | null
 }
 
-function envStr(key: string, fallback: string): string {
-  return (typeof import.meta !== 'undefined' ? (import.meta.env as Record<string, string>)[key] : '') || fallback
-}
-
 function envInt(key: string, fallback: number): number {
-  const v = envStr(key, '')
+  const v = (typeof import.meta !== 'undefined' ? (import.meta.env as Record<string, string>)[key] : '') || ''
   if (!v) return fallback
   const n = parseInt(v, 10)
   return isNaN(n) ? fallback : n
 }
 
-const CHECK_LIMIT = 72
-const STORAGE_KEY = 'quiniela_status_history'
-const STATUS_API = envStr('VITE_STATUS_API_ENDPOINT', '/api/v1/public/settings')
-const STATUS_DB = envStr('VITE_STATUS_DB_ENDPOINT', '/api/v1/matches')
 const REFRESH_INTERVAL = envInt('VITE_STATUS_REFRESH_INTERVAL', 30)
-const CHECK_TIMEOUT = envInt('VITE_STATUS_CHECK_TIMEOUT', 8000)
-
-function loadHistory(name: string): CheckPoint[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const all: Record<string, CheckPoint[]> = JSON.parse(raw)
-    return (all[name] ?? []).filter((p: CheckPoint) => Date.now() - p.t < 86400000)
-  } catch { return [] }
-}
-
-function saveHistory(name: string, points: CheckPoint[]) {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const all: Record<string, CheckPoint[]> = raw ? JSON.parse(raw) : {}
-    all[name] = points.slice(-CHECK_LIMIT)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
-  } catch { /* ignore quota errors */ }
-}
-
-function uptimeLabel(history: CheckPoint[]): string {
-  if (history.length === 0) return '—'
-  const ok = history.filter((h) => h.ok).length
-  return ((ok / history.length) * 100).toFixed(2) + '%'
-}
-
-function makeInitial(name: string, label: string): ServiceState {
-  const history = loadHistory(name)
-  const last = history[history.length - 1]
-  let status: ServiceStatus = 'operational'
-  if (last && !last.ok) {
-    const recent = history.slice(-3)
-    const failCount = recent.filter((r) => !r.ok).length
-    status = failCount >= 3 ? 'down' : 'degraded'
-  }
-  let lastDown: string | null = null
-  for (let i = history.length - 1; i >= 0; i--) {
-    if (!history[i].ok) {
-      lastDown = new Date(history[i].t).toLocaleString('es-CR', { timeZone: 'America/Costa_Rica', hour: '2-digit', minute: '2-digit' })
-      break
-    }
-  }
-  return { name, label, status, ms: last ? last.ms : null, history, lastDown }
-}
 
 function statusIcon(status: ServiceStatus) {
   switch (status) {
@@ -100,47 +60,45 @@ function getBg(status: ServiceStatus): string {
   }
 }
 
-async function checkURL(url: string): Promise<{ ok: boolean; ms: number }> {
-  const start = performance.now()
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(CHECK_TIMEOUT) })
-    return { ok: res.ok, ms: Math.round(performance.now() - start) }
-  } catch {
-    return { ok: false, ms: Math.round(performance.now() - start) }
-  }
-}
-
-function Bar({ ok, ms, idx }: { ok: boolean; ms: number; idx: number }) {
-  const isSlow = ok && ms > 1500
-  const color = !ok ? 'bg-red-500' : isSlow ? 'bg-amber-500' : 'bg-green-500'
-  const opacity = ok ? (isSlow ? '0.8' : '0.35') : '0.65'
-  return (
-    <div
-      className={`h-8 w-[5px] rounded-sm ${color} transition-all duration-300`}
-      style={{ opacity: Number(opacity), animationDelay: `${idx * 12}ms` }}
-      title={ok ? `${ms}ms` : `Down (${ms}ms)`}
-    />
-  )
-}
-
-function HistoryBars({ history }: { history: CheckPoint[] }) {
-  if (history.length === 0) {
-    return <div className="text-[10px] text-muted italic mt-3">No data yet — checks appear every 30s</div>
-  }
-  const bars = history.slice(-CHECK_LIMIT)
-  return (
-    <div className="flex items-end gap-[3px] mt-3 h-8">
-      {bars.map((p, i) => (
-        <Bar key={i} ok={p.ok} ms={p.ms} idx={i} />
-      ))}
-    </div>
-  )
-}
-
 function msLabel(ms: number | null): string {
   if (ms === null) return '—'
   if (ms < 1000) return `${ms}ms`
   return (ms / 1000).toFixed(1) + 's'
+}
+
+function lastDownFrom(history: APICheckHistory[]): string | null {
+  for (const h of history) {
+    if (h.status !== 'operational') {
+      const d = new Date(h.checked_at)
+      return d.toLocaleString('es-CR', { timeZone: 'America/Costa_Rica', hour: '2-digit', minute: '2-digit' })
+    }
+  }
+  return null
+}
+
+function Bar({ status, ms, idx }: { status: ServiceStatus; ms: number; idx: number }) {
+  const color = status === 'down' ? 'bg-red-500' : status === 'degraded' ? 'bg-amber-500' : 'bg-green-500'
+  const opacity = status === 'operational' ? '0.35' : status === 'degraded' ? '0.7' : '0.65'
+  return (
+    <div
+      className={`h-8 w-[5px] rounded-sm ${color} transition-all duration-300`}
+      style={{ opacity: Number(opacity) }}
+      title={`${status} ${ms}ms`}
+    />
+  )
+}
+
+function HistoryBars({ history }: { history: APICheckHistory[] }) {
+  if (history.length === 0) {
+    return <div className="text-[10px] text-muted italic mt-3">No data yet</div>
+  }
+  return (
+    <div className="flex items-end gap-[3px] mt-3 h-8">
+      {history.slice(-72).map((p, i) => (
+        <Bar key={i} status={p.status} ms={p.response_time_ms} idx={i} />
+      ))}
+    </div>
+  )
 }
 
 function ServiceCard({ svc }: { svc: ServiceState }) {
@@ -161,7 +119,7 @@ function ServiceCard({ svc }: { svc: ServiceState }) {
       <HistoryBars history={svc.history} />
       <div className="flex items-center justify-between mt-2">
         <span className="text-[10px] text-muted">
-          Uptime: <span className="text-white/60 font-medium">{uptimeLabel(svc.history)}</span>
+          Uptime (24h): <span className="text-white/60 font-medium">{svc.uptime}</span>
         </span>
         {svc.lastDown && (
           <span className="text-[10px] text-muted">
@@ -174,64 +132,83 @@ function ServiceCard({ svc }: { svc: ServiceState }) {
 }
 
 export default function Status() {
-  const [services, setServices] = useState<ServiceState[]>([
-    makeInitial('api', 'API'),
-    makeInitial('db', 'Database'),
-  ])
+  const [services, setServices] = useState<ServiceState[]>([])
+  const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
   const [refreshSec, setRefreshSec] = useState(0)
+  const [error, setError] = useState<string | null>(null)
   const mounted = useRef(true)
 
-  const runChecks = useCallback(async () => {
-    const results: Record<string, { ok: boolean; ms: number }> = {}
-    ;(
-      await Promise.all([
-        checkURL(STATUS_API).then((r) => { results['api'] = r }),
-        checkURL(STATUS_DB).then((r) => { results['db'] = r }),
+  const fetchStatus = useCallback(async () => {
+    try {
+      const [svcRes, histRes] = await Promise.all([
+        fetch('/api/v1/status/services'),
+        Promise.all([
+          fetch('/api/v1/status/history?service=api&limit=72').then(r => r.json()),
+          fetch('/api/v1/status/history?service=db&limit=72').then(r => r.json()),
+        ]),
       ])
-    )
 
-    if (!mounted.current) return
+      if (!mounted.current) return
 
-    setServices((prev) =>
-      prev.map((svc) => {
-        const r = results[svc.name]
-        if (!r) return svc
-        const point: CheckPoint = { t: Date.now(), ok: r.ok, ms: r.ms }
-        const history = [...svc.history, point].slice(-CHECK_LIMIT)
-        saveHistory(svc.name, history)
-        const recent = history.slice(-3)
-        const failCount = recent.filter((h) => !h.ok).length
-        let status: ServiceStatus = svc.status
-        if (r.ok && failCount === 0) status = 'operational'
-        else if (!r.ok && failCount >= 3) status = 'down'
-        else if (!r.ok) status = 'degraded'
-        else status = 'operational'
+      if (!svcRes.ok) {
+        setError(`API returned ${svcRes.status}`)
+        return
+      }
 
-        let lastDown: string | null = svc.lastDown
-        if (!r.ok) {
-          lastDown = new Date().toLocaleString('es-CR', { timeZone: 'America/Costa_Rica', hour: '2-digit', minute: '2-digit' })
-        }
-        return { ...svc, status, ms: r.ms, history, lastDown }
-      })
-    )
-    setLastUpdate(new Date())
-    setRefreshSec(0)
+      const svcData: APIServiceStatus[] = await svcRes.json()
+      const [apiHistory, dbHistory] = histRes as [APICheckHistory[], APICheckHistory[]]
+
+      const historyMap: Record<string, APICheckHistory[]> = {
+        api: apiHistory,
+        db: dbHistory,
+      }
+
+      setServices(
+        svcData.map((s) => ({
+          name: s.service_name,
+          label: s.display_name,
+          status: s.status,
+          ms: s.response_time_ms,
+          uptime: s.uptime,
+          history: historyMap[s.service_name] || [],
+          errorMessage: s.error_message,
+          lastDown: lastDownFrom(historyMap[s.service_name] || []),
+        }))
+      )
+      setError(null)
+      setLastUpdate(new Date())
+      setRefreshSec(0)
+    } catch (err) {
+      if (mounted.current) {
+        setError(err instanceof Error ? err.message : 'fetch failed')
+      }
+    } finally {
+      if (mounted.current) setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
     mounted.current = true
-    runChecks()
-    const interval = setInterval(() => runChecks(), REFRESH_INTERVAL * 1000)
+    fetchStatus()
+    const interval = setInterval(() => fetchStatus(), REFRESH_INTERVAL * 1000)
     const tick = setInterval(() => setRefreshSec((s) => s + 1), 1000)
     return () => {
       mounted.current = false
       clearInterval(interval)
       clearInterval(tick)
     }
-  }, [runChecks])
+  }, [fetchStatus])
 
   const overall = overallStatus(services)
+
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto flex items-center justify-center h-48">
+        <div className="text-muted text-sm animate-pulse">Loading status...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -242,10 +219,18 @@ export default function Status() {
         </div>
         <h1 className="text-3xl font-bold text-white tracking-tight">Status</h1>
         <div className="flex items-center gap-2 mt-2">
-          {statusIcon(overall.label === 'All systems operational' ? 'operational' : overall.label === 'Degraded performance' ? 'degraded' : 'down')}
+          {services.length > 0
+            ? statusIcon(overall.label === 'All systems operational' ? 'operational' : overall.label === 'Degraded performance' ? 'degraded' : 'down')
+            : statusIcon('operational')}
           <span className={`text-sm font-medium ${overall.color}`}>{overall.label}</span>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-xs text-red-400">
+          {error}
+        </div>
+      )}
 
       <div className="flex flex-col gap-3">
         {services.map((svc) => (
@@ -260,7 +245,7 @@ export default function Status() {
         <span>
           Auto-refresh in {Math.max(0, REFRESH_INTERVAL - refreshSec)}s
           <button
-            onClick={runChecks}
+            onClick={fetchStatus}
             className="ml-2 text-gold hover:underline"
           >
             Refresh now

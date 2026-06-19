@@ -47,6 +47,7 @@ func main() {
 	tickerH := &handlers.TickerHandler{Provider: worldCup26Client, TZ: cfg.CostaRicaTZ, DB: pool}
 	bannerH := &handlers.BannerHandler{DB: pool}
 	settingsH := &handlers.SettingsHandler{DB: pool, UploadDir: cfg.UploadDir}
+	statusH := &handlers.StatusHandler{DB: pool}
 
 	r := chi.NewRouter()
 
@@ -161,12 +162,20 @@ func main() {
 			})
 		})
 
+		r.Route("/status", func(r chi.Router) {
+			r.Get("/services", statusH.Services)
+			r.Get("/history", statusH.History)
+		})
+
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(authSvc))
 			r.Get("/me", authH.Me)
 			r.Put("/me", authH.UpdateProfile)
 		})
 	})
+
+	healthChecker := services.NewHealthChecker(pool, "http://localhost"+cfg.Port)
+	healthChecker.Start(ctx)
 
 	srv := &http.Server{
 		Addr:         cfg.Port,
@@ -188,6 +197,8 @@ func main() {
 
 	<-quit
 	log.Println("shutting down server...")
+
+	healthChecker.Stop()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
