@@ -4,6 +4,7 @@
 # Go
 api/bin/
 api/tmp/
+tools/*.exe
 
 # Node
 web/node_modules/

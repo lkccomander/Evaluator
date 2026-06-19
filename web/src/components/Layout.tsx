@@ -10,6 +10,7 @@ const navItems = [
   { path: '/results', label: 'Resultados', auth: true },
   { path: '/my-predictions', label: 'Mis Pronósticos', auth: true },
   { path: '/leaderboard', label: 'Leaderboard', auth: false },
+  { path: '/status', label: 'Status', auth: false },
 ]
 
 const adminItems = [
