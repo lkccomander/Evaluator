@@ -47,6 +47,7 @@ func main() {
 	tickerH := &handlers.TickerHandler{Provider: worldCup26Client, TZ: cfg.CostaRicaTZ, DB: pool}
 	bannerH := &handlers.BannerHandler{DB: pool}
 	settingsH := &handlers.SettingsHandler{DB: pool, UploadDir: cfg.UploadDir}
+	vizH := &handlers.VisualizationHandler{DB: pool}
 	statusH := &handlers.StatusHandler{DB: pool}
 
 	r := chi.NewRouter()
@@ -161,6 +162,8 @@ func main() {
 				r.Get("/me", leaderH.MyGlobalPosition)
 			})
 		})
+
+		r.Get("/visualization/prediction-graph", vizH.PredictionGraph)
 
 		r.Route("/status", func(r chi.Router) {
 			r.Get("/services", statusH.Services)

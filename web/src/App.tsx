@@ -12,6 +12,7 @@ import AdminResults from './pages/AdminResults'
 import AdminUsers from './pages/AdminUsers'
 import AdminBannerConfig from './pages/AdminBannerConfig'
 import AdminSettings from './pages/AdminSettings'
+import PredictionGraphPage from './pages/PredictionGraphPage'
 import Status from './pages/Status'
 
 import Results from './pages/Results'
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
           <Route path="/admin/banner-config" element={<AdminRoute><AdminBannerConfig /></AdminRoute>} />
           <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
+          <Route path="/prediction-graph" element={<Protected><PredictionGraphPage /></Protected>} />
           <Route path="/status" element={<Status />} />
 
         </Routes>
