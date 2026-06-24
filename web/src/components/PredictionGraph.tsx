@@ -117,20 +117,20 @@ export default function PredictionGraph({ nodes, links }: Props) {
       .selectAll('g')
       .data(nodes)
       .join('g')
-      .call(d3.drag<SVGGElement, unknown>()
+      .call(d3.drag<any, any>()
         .on('start', (event, d) => {
           if (!event.active) simulation.alphaTarget(0.3).restart()
-          ;(d as any).fx = (d as any).x
-          ;(d as any).fy = (d as any).y
+          d.fx = d.x
+          d.fy = d.y
         })
         .on('drag', (event, d) => {
-          ;(d as any).fx = event.x
-          ;(d as any).fy = event.y
+          d.fx = event.x
+          d.fy = event.y
         })
         .on('end', (event, d) => {
           if (!event.active) simulation.alphaTarget(0)
-          ;(d as any).fx = null
-          ;(d as any).fy = null
+          d.fx = null
+          d.fy = null
         })
       )
 
@@ -194,7 +194,7 @@ export default function PredictionGraph({ nodes, links }: Props) {
       node.attr('transform', d => `translate(${(d as any).x},${(d as any).y})`)
     })
 
-    return () => simulation.stop()
+    return () => { simulation.stop() }
   }, [nodes, links])
 
   if (!nodes.length) {
