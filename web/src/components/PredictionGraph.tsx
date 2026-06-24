@@ -167,7 +167,7 @@ export default function PredictionGraph({ nodes, links }: Props) {
       .style('pointer-events', 'none')
 
     // Hover: show link details
-    node.on('mouseenter', (event, d) => {
+    node.on('mouseenter', (_event, d) => {
       const n = d as unknown as GraphNode
       linkLabel
         .style('opacity', (ld: unknown) => {
