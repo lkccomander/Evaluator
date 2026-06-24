@@ -15,7 +15,7 @@ const BAR_COLORS = [
 
 export default function BarChartRace({ data }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval>>()
+  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
 
   const animate = useCallback(() => {
     if (!svgRef.current || !data.length) return
@@ -76,7 +76,7 @@ export default function BarChartRace({ data }: Props) {
 
     // Prepare bars
     const barGroups = chart.selectAll('g.bar-group')
-      .data(d3.range(maxBars).reverse().map(String), d => d)
+      .data(d3.range(maxBars).reverse().map(String), (d: string) => d)
       .join('g')
       .attr('class', 'bar-group')
       .attr('transform', (_, i) => `translate(0,${yScale(String(i))!})`)
@@ -149,7 +149,7 @@ export default function BarChartRace({ data }: Props) {
         .attr('fill', '#a0aec0')
         .attr('font-size', 11)
 
-      const merged = groups.merge(entering)
+      const merged = groups.merge(entering as any)
 
       // Sort bars by value
       const sortedData = [...sorted].sort((a, b) => b.value - a.value)
@@ -161,7 +161,7 @@ export default function BarChartRace({ data }: Props) {
       const t = d3.transition().duration(600).ease(d3.easeCubicOut)
 
       merged.transition(t)
-        .attr('transform', (d: any, i: number) => `translate(0,${yScale(String(i))!})`)
+        .attr('transform', (_: any, i: number) => `translate(0,${yScale(String(i))!})`)
 
       merged.select('rect')
         .transition(t)
