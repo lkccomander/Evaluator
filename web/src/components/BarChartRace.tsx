@@ -76,7 +76,7 @@ export default function BarChartRace({ data }: Props) {
 
     // Prepare bars
     const barGroups = chart.selectAll('g.bar-group')
-      .data(d3.range(maxBars).reverse().map(String), (d: string) => d)
+      .data(d3.range(maxBars).reverse().map(String), (d: any) => d as string)
       .join('g')
       .attr('class', 'bar-group')
       .attr('transform', (_, i) => `translate(0,${yScale(String(i))!})`)
