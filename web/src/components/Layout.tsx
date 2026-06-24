@@ -11,6 +11,7 @@ const navItems = [
   { path: '/my-predictions', label: 'Mis Pronósticos', auth: true },
   { path: '/leaderboard', label: 'Leaderboard', auth: true },
   { path: '/prediction-graph', label: 'd3js', auth: true },
+  { path: '/race', label: '🏎️ Race', auth: true },
   { path: '/status', label: 'Status', auth: false },
 ]
 
