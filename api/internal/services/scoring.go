@@ -20,10 +20,12 @@ func ScoreMatch(ctx context.Context, db *pgxpool.Pool, matchID string) (*Scoring
 	defer tx.Rollback(ctx)
 
 	var homeScore, awayScore int
+	var penaltyHome, penaltyAway *int
 	err = tx.QueryRow(ctx,
-		"SELECT home_score, away_score FROM matches WHERE id = $1 AND home_score IS NOT NULL AND away_score IS NOT NULL",
+		`SELECT home_score, away_score, penalty_home_score, penalty_away_score
+		 FROM matches WHERE id = $1 AND home_score IS NOT NULL AND away_score IS NOT NULL`,
 		matchID,
-	).Scan(&homeScore, &awayScore)
+	).Scan(&homeScore, &awayScore, &penaltyHome, &penaltyAway)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("match not found or score not yet entered")
@@ -34,7 +36,7 @@ func ScoreMatch(ctx context.Context, db *pgxpool.Pool, matchID string) (*Scoring
 	actualOutcome := sign(homeScore - awayScore)
 
 	rows, err := tx.Query(ctx,
-		"SELECT id, home_score_pred, away_score_pred FROM predictions WHERE match_id = $1",
+		"SELECT id, home_score_pred, away_score_pred, pen_home_pred, pen_away_pred FROM predictions WHERE match_id = $1",
 		matchID,
 	)
 	if err != nil {
@@ -43,14 +45,15 @@ func ScoreMatch(ctx context.Context, db *pgxpool.Pool, matchID string) (*Scoring
 	defer rows.Close()
 
 	type pred struct {
-		ID                 string
-		HomePred, AwayPred int
+		ID                     string
+		HomePred, AwayPred     int
+		PenHome, PenAway       *int
 	}
 
 	var preds []pred
 	for rows.Next() {
 		var p pred
-		if err := rows.Scan(&p.ID, &p.HomePred, &p.AwayPred); err != nil {
+		if err := rows.Scan(&p.ID, &p.HomePred, &p.AwayPred, &p.PenHome, &p.PenAway); err != nil {
 			return nil, fmt.Errorf("scan prediction: %w", err)
 		}
 		preds = append(preds, p)
@@ -78,9 +81,16 @@ func ScoreMatch(ctx context.Context, db *pgxpool.Pool, matchID string) (*Scoring
 			goalPts = 0
 		}
 
+		penaltyBonus := 0
+		if penaltyHome != nil && penaltyAway != nil && p.PenHome != nil && p.PenAway != nil && p.HomePred == p.AwayPred {
+			if *p.PenHome == *penaltyHome && *p.PenAway == *penaltyAway {
+				penaltyBonus = 1
+			}
+		}
+
 		_, err := tx.Exec(ctx,
 			"UPDATE predictions SET points_earned = $1, goal_pts_earned = $2, updated_at = NOW() WHERE id = $3",
-			points, goalPts, p.ID,
+			points+penaltyBonus, goalPts, p.ID,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("update prediction %s: %w", p.ID, err)

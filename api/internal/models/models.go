@@ -31,18 +31,21 @@ type User struct {
 }
 
 type Match struct {
-	ID          uuid.UUID `json:"id"`
-	MatchNumber int       `json:"match_number"`
-	Stage       string    `json:"stage"`
-	GroupName   *string   `json:"group_name"`
-	KickoffUTC  time.Time `json:"kickoff_utc"`
-	HomeTeam    string    `json:"home_team"`
-	AwayTeam    string    `json:"away_team"`
-	HomeScore   *int      `json:"home_score"`
-	AwayScore   *int      `json:"away_score"`
-	Status      string    `json:"status"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID               uuid.UUID `json:"id"`
+	MatchNumber      int       `json:"match_number"`
+	Stage            string    `json:"stage"`
+	GroupName        *string   `json:"group_name"`
+	KickoffUTC       time.Time `json:"kickoff_utc"`
+	HomeTeam         string    `json:"home_team"`
+	AwayTeam         string    `json:"away_team"`
+	HomeScore        *int      `json:"home_score"`
+	AwayScore        *int      `json:"away_score"`
+	PenaltyHomeScore *int      `json:"penalty_home_score"`
+	PenaltyAwayScore *int      `json:"penalty_away_score"`
+	BracketPosition  *int      `json:"bracket_position"`
+	Status           string    `json:"status"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
 }
 
 type Prediction struct {
@@ -51,6 +54,8 @@ type Prediction struct {
 	MatchID       uuid.UUID `json:"match_id"`
 	HomeScorePred int       `json:"home_score_pred"`
 	AwayScorePred int       `json:"away_score_pred"`
+	PenHomePred   *int      `json:"pen_home_pred"`
+	PenAwayPred   *int      `json:"pen_away_pred"`
 	SubmittedAt   time.Time `json:"submitted_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 	PointsEarned  *int      `json:"points_earned"`

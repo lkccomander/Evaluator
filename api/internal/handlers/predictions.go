@@ -22,6 +22,8 @@ type submitPredictionRequest struct {
 	MatchID       string `json:"match_id"`
 	HomeScorePred int    `json:"home_score_pred"`
 	AwayScorePred int    `json:"away_score_pred"`
+	PenHomePred   *int   `json:"pen_home_pred"`
+	PenAwayPred   *int   `json:"pen_away_pred"`
 }
 
 func (h *PredictionHandler) Submit(w http.ResponseWriter, r *http.Request) {
@@ -55,9 +57,10 @@ func (h *PredictionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var kickoffUTC time.Time
+	var stage string
 	err = h.DB.QueryRow(r.Context(),
-		"SELECT kickoff_utc FROM matches WHERE id = $1", matchID,
-	).Scan(&kickoffUTC)
+		"SELECT kickoff_utc, stage FROM matches WHERE id = $1", matchID,
+	).Scan(&kickoffUTC, &stage)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			respondError(w, http.StatusNotFound, "match not found")
@@ -72,12 +75,33 @@ func (h *PredictionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	isKnockout := stage != "" && stage != "group"
+	isDrawPrediction := req.HomeScorePred == req.AwayScorePred
+
+	if isKnockout && isDrawPrediction {
+		if req.PenHomePred == nil || req.PenAwayPred == nil {
+			respondError(w, http.StatusBadRequest, "penalty prediction required when predicting a draw in knockout matches")
+			return
+		}
+		if *req.PenHomePred < 0 || *req.PenAwayPred < 0 {
+			respondError(w, http.StatusBadRequest, "penalty scores must be non-negative")
+			return
+		}
+		if *req.PenHomePred == *req.PenAwayPred {
+			respondError(w, http.StatusBadRequest, "penalty shootout cannot end in a draw")
+			return
+		}
+	}
+
+	penHome := maybeNilInt(req.PenHomePred)
+	penAway := maybeNilInt(req.PenAwayPred)
+
 	_, err = h.DB.Exec(r.Context(),
-		`INSERT INTO predictions (user_id, match_id, home_score_pred, away_score_pred)
-		 VALUES ($1, $2, $3, $4)
+		`INSERT INTO predictions (user_id, match_id, home_score_pred, away_score_pred, pen_home_pred, pen_away_pred)
+		 VALUES ($1, $2, $3, $4, $5, $6)
 		 ON CONFLICT (user_id, match_id)
-		 DO UPDATE SET home_score_pred = $3, away_score_pred = $4, updated_at = NOW()`,
-		userID, matchID, req.HomeScorePred, req.AwayScorePred,
+		 DO UPDATE SET home_score_pred = $3, away_score_pred = $4, pen_home_pred = $5, pen_away_pred = $6, updated_at = NOW()`,
+		userID, matchID, req.HomeScorePred, req.AwayScorePred, penHome, penAway,
 	)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "failed to save prediction")
@@ -108,13 +132,14 @@ func (h *PredictionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var matchKickoff time.Time
+	var stage string
 	err = h.DB.QueryRow(r.Context(),
-		`SELECT m.kickoff_utc
+		`SELECT m.kickoff_utc, m.stage
 		 FROM predictions p
 		 JOIN matches m ON m.id = p.match_id
 		 WHERE p.id = $1 AND p.user_id = $2`,
 		predictionID, userID,
-	).Scan(&matchKickoff)
+	).Scan(&matchKickoff, &stage)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			respondError(w, http.StatusNotFound, "prediction not found")
@@ -129,10 +154,31 @@ func (h *PredictionHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	isKnockout := stage != "" && stage != "group"
+	isDrawPrediction := req.HomeScorePred == req.AwayScorePred
+
+	if isKnockout && isDrawPrediction {
+		if req.PenHomePred == nil || req.PenAwayPred == nil {
+			respondError(w, http.StatusBadRequest, "penalty prediction required when predicting a draw in knockout matches")
+			return
+		}
+		if *req.PenHomePred < 0 || *req.PenAwayPred < 0 {
+			respondError(w, http.StatusBadRequest, "penalty scores must be non-negative")
+			return
+		}
+		if *req.PenHomePred == *req.PenAwayPred {
+			respondError(w, http.StatusBadRequest, "penalty shootout cannot end in a draw")
+			return
+		}
+	}
+
+	penHome := maybeNilInt(req.PenHomePred)
+	penAway := maybeNilInt(req.PenAwayPred)
+
 	_, err = h.DB.Exec(r.Context(),
-		`UPDATE predictions SET home_score_pred = $1, away_score_pred = $2, updated_at = NOW()
-		 WHERE id = $3 AND user_id = $4`,
-		req.HomeScorePred, req.AwayScorePred, predictionID, userID,
+		`UPDATE predictions SET home_score_pred = $1, away_score_pred = $2, pen_home_pred = $3, pen_away_pred = $4, updated_at = NOW()
+		 WHERE id = $5 AND user_id = $6`,
+		req.HomeScorePred, req.AwayScorePred, penHome, penAway, predictionID, userID,
 	)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "failed to update prediction")
@@ -147,6 +193,8 @@ type adminSetPredictionRequest struct {
 	MatchID       string `json:"match_id"`
 	HomeScorePred int    `json:"home_score_pred"`
 	AwayScorePred int    `json:"away_score_pred"`
+	PenHomePred   *int   `json:"pen_home_pred"`
+	PenAwayPred   *int   `json:"pen_away_pred"`
 }
 
 func (h *PredictionHandler) AdminSetPrediction(w http.ResponseWriter, r *http.Request) {
@@ -171,12 +219,15 @@ func (h *PredictionHandler) AdminSetPrediction(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	penHome := maybeNilInt(req.PenHomePred)
+	penAway := maybeNilInt(req.PenAwayPred)
+
 	_, err = h.DB.Exec(r.Context(),
-		`INSERT INTO predictions (user_id, match_id, home_score_pred, away_score_pred)
-		 VALUES ($1, $2, $3, $4)
+		`INSERT INTO predictions (user_id, match_id, home_score_pred, away_score_pred, pen_home_pred, pen_away_pred)
+		 VALUES ($1, $2, $3, $4, $5, $6)
 		 ON CONFLICT (user_id, match_id)
-		 DO UPDATE SET home_score_pred = $3, away_score_pred = $4, updated_at = NOW()`,
-		userID, matchID, req.HomeScorePred, req.AwayScorePred,
+		 DO UPDATE SET home_score_pred = $3, away_score_pred = $4, pen_home_pred = $5, pen_away_pred = $6, updated_at = NOW()`,
+		userID, matchID, req.HomeScorePred, req.AwayScorePred, penHome, penAway,
 	)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "failed to save prediction")
@@ -251,8 +302,12 @@ func (h *PredictionHandler) GetMy(w http.ResponseWriter, r *http.Request) {
 		KickoffUTC    time.Time  `json:"kickoff_utc"`
 		HomeScorePred int        `json:"home_score_pred"`
 		AwayScorePred int        `json:"away_score_pred"`
+		PenHomePred   *int       `json:"pen_home_pred"`
+		PenAwayPred   *int       `json:"pen_away_pred"`
 		HomeScore     *int       `json:"home_score"`
 		AwayScore     *int       `json:"away_score"`
+		PenaltyHome   *int       `json:"penalty_home_score"`
+		PenaltyAway   *int       `json:"penalty_away_score"`
 		PointsEarned  *int       `json:"points_earned"`
 		GoalPtsEarned *int       `json:"goal_pts_earned"`
 		Locked        bool       `json:"locked"`
@@ -261,7 +316,8 @@ func (h *PredictionHandler) GetMy(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := h.DB.Query(r.Context(),
 		`SELECT p.id, m.id, m.match_number, m.home_team, m.away_team, m.kickoff_utc,
-		        p.home_score_pred, p.away_score_pred, m.home_score, m.away_score,
+		        p.home_score_pred, p.away_score_pred, p.pen_home_pred, p.pen_away_pred,
+		        m.home_score, m.away_score, m.penalty_home_score, m.penalty_away_score,
 		        p.points_earned, p.goal_pts_earned, p.submitted_at
 		 FROM predictions p
 		 JOIN matches m ON m.id = p.match_id
@@ -279,7 +335,8 @@ func (h *PredictionHandler) GetMy(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var p predictionRow
 		if err := rows.Scan(&p.ID, &p.MatchID, &p.MatchNumber, &p.HomeTeam, &p.AwayTeam,
-			&p.KickoffUTC, &p.HomeScorePred, &p.AwayScorePred, &p.HomeScore, &p.AwayScore,
+			&p.KickoffUTC, &p.HomeScorePred, &p.AwayScorePred, &p.PenHomePred, &p.PenAwayPred,
+			&p.HomeScore, &p.AwayScore, &p.PenaltyHome, &p.PenaltyAway,
 			&p.PointsEarned, &p.GoalPtsEarned, &p.SubmittedAt); err != nil {
 			respondError(w, http.StatusInternalServerError, "scan error")
 			return
@@ -292,4 +349,18 @@ func (h *PredictionHandler) GetMy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, predictions)
+}
+
+func maybeNilInt(p *int) *int {
+	if p == nil {
+		return nil
+	}
+	return p
+}
+
+func nullIfNil(p *int) interface{} {
+	if p == nil {
+		return nil
+	}
+	return *p
 }

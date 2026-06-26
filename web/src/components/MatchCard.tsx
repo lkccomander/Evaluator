@@ -25,6 +25,8 @@ export default function MatchCard({
 }) {
   const [home, setHome] = useState(userPrediction?.home?.toString() ?? '')
   const [away, setAway] = useState(userPrediction?.away?.toString() ?? '')
+  const [penHome, setPenHome] = useState('')
+  const [penAway, setPenAway] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [stats, setStats] = useState<PredictionStats | null>(null)
@@ -49,6 +51,9 @@ export default function MatchCard({
   }, [match.id, showChart, leagueId])
 
   const canPredict = userHasLeague && !match.locked && match.status === 'upcoming'
+  const isKnockout = match.stage !== '' && match.stage !== 'group'
+  const isDrawPrediction = home !== '' && away !== '' && Number(home) === Number(away)
+  const showPenaltyInputs = isKnockout && isDrawPrediction && canPredict
   const msUntilKickoff = new Date(match.kickoff_utc).getTime() - Date.now()
   const hasStarted = msUntilKickoff <= 0
   const statusDotClass = msUntilKickoff <= 15 * 60 * 1000
@@ -72,7 +77,13 @@ export default function MatchCard({
     setSaving(true)
     setError('')
     try {
-      await submitPrediction(match.id, Number(home), Number(away))
+      await submitPrediction(
+        match.id,
+        Number(home),
+        Number(away),
+        showPenaltyInputs ? Number(penHome) : undefined,
+        showPenaltyInputs ? Number(penAway) : undefined,
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar')
     }
@@ -131,6 +142,29 @@ export default function MatchCard({
         <div className="flex-1 font-medium text-sm min-w-0"><TeamName name={match.away_team} /></div>
       </div>
 
+      {showPenaltyInputs && (
+        <div className="flex items-center justify-center gap-2 pt-1">
+          <span className="text-xs text-muted mr-1">Penales:</span>
+          <input
+            type="number"
+            min={0}
+            max={20}
+            value={penHome}
+            onChange={e => setPenHome(e.target.value)}
+            className="w-12 h-10 bg-surface border border-surface-border rounded text-center font-mono text-sm text-white focus:outline-none focus:border-gold"
+          />
+          <span className="text-muted font-mono text-sm">-</span>
+          <input
+            type="number"
+            min={0}
+            max={20}
+            value={penAway}
+            onChange={e => setPenAway(e.target.value)}
+            className="w-12 h-10 bg-surface border border-surface-border rounded text-center font-mono text-sm text-white focus:outline-none focus:border-gold"
+          />
+        </div>
+      )}
+
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span
@@ -167,6 +201,8 @@ export default function MatchCard({
         {match.status === 'finished' && userPrediction && (
           <span className="text-xs text-muted">
             Pronóstico: {userPrediction.home}-{userPrediction.away}
+            {match.penalty_home_score != null && match.penalty_away_score != null &&
+              ` (pen: ${match.penalty_home_score}-${match.penalty_away_score})`}
           </span>
         )}
       </div>

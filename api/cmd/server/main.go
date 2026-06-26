@@ -49,6 +49,7 @@ func main() {
 	settingsH := &handlers.SettingsHandler{DB: pool, UploadDir: cfg.UploadDir}
 	vizH := &handlers.VisualizationHandler{DB: pool}
 	statusH := &handlers.StatusHandler{DB: pool}
+	koH := &handlers.KnockoutHandler{DB: pool}
 
 	r := chi.NewRouter()
 
@@ -161,6 +162,16 @@ func main() {
 				r.Get("/mine", leaderH.MyLeague)
 				r.Get("/me", leaderH.MyGlobalPosition)
 			})
+		})
+
+		r.Get("/knockout/bracket", koH.Bracket)
+		r.Get("/leaderboard/knockout", koH.Leaderboard)
+
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(authSvc))
+			r.Use(middleware.Admin)
+			r.Get("/admin/knockout/unseeded", koH.UnseededSlots)
+			r.Post("/admin/knockout/seed", koH.Seed)
 		})
 
 		r.Get("/visualization/prediction-graph", vizH.PredictionGraph)

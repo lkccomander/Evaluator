@@ -7,9 +7,11 @@ import GameTicker from './GameTicker'
 
 const navItems = [
   { path: '/matches', label: 'Partidos', auth: true },
+  { path: '/knockout', label: 'Eliminatorias', auth: true },
   { path: '/results', label: 'Resultados', auth: true },
   { path: '/my-predictions', label: 'Mis Pronósticos', auth: true },
   { path: '/leaderboard', label: 'Leaderboard', auth: true },
+  { path: '/knockout/leaderboard', label: 'KO Tabla', auth: true },
   { path: '/prediction-graph', label: 'd3js', auth: true },
   { path: '/race', label: '🏎️ Race', auth: true },
   { path: '/status', label: 'Status', auth: false },
@@ -17,6 +19,7 @@ const navItems = [
 
 const adminItems = [
   { path: '/admin/leagues', label: 'Admin Ligas' },
+  { path: '/admin/knockout', label: 'Armar Bracket' },
   { path: '/admin/results', label: 'Admin Resultados' },
   { path: '/admin/users', label: 'Admin Usuarios' },
   { path: '/admin/banner-config', label: 'Config Banner' },

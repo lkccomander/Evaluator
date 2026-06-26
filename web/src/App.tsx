@@ -15,6 +15,9 @@ import AdminSettings from './pages/AdminSettings'
 import PredictionGraphPage from './pages/PredictionGraphPage'
 import BarChartRacePage from './pages/BarChartRacePage'
 import Status from './pages/Status'
+import Knockout from './pages/Knockout'
+import KnockoutLeaderboard from './pages/KnockoutLeaderboard'
+import AdminKnockout from './pages/AdminKnockout'
 
 import Results from './pages/Results'
 
@@ -43,11 +46,14 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/join-league" element={<Protected><JoinLeague /></Protected>} />
           <Route path="/matches" element={<Protected><Matches /></Protected>} />
+          <Route path="/knockout" element={<Protected><Knockout /></Protected>} />
+          <Route path="/knockout/leaderboard" element={<Protected><KnockoutLeaderboard /></Protected>} />
           <Route path="/results" element={<Protected><Results /></Protected>} />
           <Route path="/my-predictions" element={<Protected><MyPredictions /></Protected>} />
           <Route path="/leaderboard" element={<Protected><Leaderboard /></Protected>} />
           <Route path="/leaderboard/my-league" element={<Protected><Leaderboard /></Protected>} />
           <Route path="/admin/leagues" element={<AdminRoute><AdminLeagues /></AdminRoute>} />
+          <Route path="/admin/knockout" element={<AdminRoute><AdminKnockout /></AdminRoute>} />
           <Route path="/admin/results" element={<AdminRoute><AdminResults /></AdminRoute>} />
           <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
           <Route path="/admin/banner-config" element={<AdminRoute><AdminBannerConfig /></AdminRoute>} />

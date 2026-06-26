@@ -10,6 +10,9 @@ export interface Match {
   away_team: string
   home_score: number | null
   away_score: number | null
+  penalty_home_score: number | null
+  penalty_away_score: number | null
+  bracket_position: number | null
   status: string
   deadline: string
   locked: boolean

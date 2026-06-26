@@ -20,7 +20,7 @@ type MatchHandler struct {
 func (h *MatchHandler) List(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.Query(r.Context(),
 		`SELECT id, match_number, stage, group_name, kickoff_utc, home_team, away_team,
-		        home_score, away_score, status, created_at, updated_at
+		        home_score, away_score, penalty_home_score, penalty_away_score, bracket_position, status, created_at, updated_at
 		 FROM matches
 		 ORDER BY kickoff_utc ASC`,
 	)
@@ -31,26 +31,30 @@ func (h *MatchHandler) List(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	type matchResponse struct {
-		ID          uuid.UUID `json:"id"`
-		MatchNumber int       `json:"match_number"`
-		Stage       string    `json:"stage"`
-		GroupName   *string   `json:"group_name"`
-		KickoffUTC  time.Time `json:"kickoff_utc"`
-		HomeTeam    string    `json:"home_team"`
-		AwayTeam    string    `json:"away_team"`
-		HomeScore   *int      `json:"home_score"`
-		AwayScore   *int      `json:"away_score"`
-		Status      string    `json:"status"`
-		Deadline    time.Time `json:"deadline"`
-		Locked      bool      `json:"locked"`
+		ID               uuid.UUID `json:"id"`
+		MatchNumber      int       `json:"match_number"`
+		Stage            string    `json:"stage"`
+		GroupName        *string   `json:"group_name"`
+		KickoffUTC       time.Time `json:"kickoff_utc"`
+		HomeTeam         string    `json:"home_team"`
+		AwayTeam         string    `json:"away_team"`
+		HomeScore        *int      `json:"home_score"`
+		AwayScore        *int      `json:"away_score"`
+		PenaltyHomeScore *int      `json:"penalty_home_score"`
+		PenaltyAwayScore *int      `json:"penalty_away_score"`
+		BracketPosition  *int      `json:"bracket_position"`
+		Status           string    `json:"status"`
+		Deadline         time.Time `json:"deadline"`
+		Locked           bool      `json:"locked"`
 	}
 
 	var matches []matchResponse
 	for rows.Next() {
 		var m matchResponse
 		if err := rows.Scan(&m.ID, &m.MatchNumber, &m.Stage, &m.GroupName, &m.KickoffUTC,
-			&m.HomeTeam, &m.AwayTeam, &m.HomeScore, &m.AwayScore, &m.Status,
-			new(time.Time), new(time.Time)); err != nil {
+			&m.HomeTeam, &m.AwayTeam, &m.HomeScore, &m.AwayScore,
+			&m.PenaltyHomeScore, &m.PenaltyAwayScore, &m.BracketPosition,
+			&m.Status, new(time.Time), new(time.Time)); err != nil {
 			respondError(w, http.StatusInternalServerError, "scan error")
 			return
 		}
@@ -74,25 +78,29 @@ func (h *MatchHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var m struct {
-		ID          uuid.UUID `json:"id"`
-		MatchNumber int       `json:"match_number"`
-		Stage       string    `json:"stage"`
-		GroupName   *string   `json:"group_name"`
-		KickoffUTC  time.Time `json:"kickoff_utc"`
-		HomeTeam    string    `json:"home_team"`
-		AwayTeam    string    `json:"away_team"`
-		HomeScore   *int      `json:"home_score"`
-		AwayScore   *int      `json:"away_score"`
-		Status      string    `json:"status"`
-		Deadline    time.Time `json:"deadline"`
-		Locked      bool      `json:"locked"`
+		ID               uuid.UUID `json:"id"`
+		MatchNumber      int       `json:"match_number"`
+		Stage            string    `json:"stage"`
+		GroupName        *string   `json:"group_name"`
+		KickoffUTC       time.Time `json:"kickoff_utc"`
+		HomeTeam         string    `json:"home_team"`
+		AwayTeam         string    `json:"away_team"`
+		HomeScore        *int      `json:"home_score"`
+		AwayScore        *int      `json:"away_score"`
+		PenaltyHomeScore *int      `json:"penalty_home_score"`
+		PenaltyAwayScore *int      `json:"penalty_away_score"`
+		BracketPosition  *int      `json:"bracket_position"`
+		Status           string    `json:"status"`
+		Deadline         time.Time `json:"deadline"`
+		Locked           bool      `json:"locked"`
 	}
 	err = h.DB.QueryRow(r.Context(),
 		`SELECT id, match_number, stage, group_name, kickoff_utc, home_team, away_team,
-		        home_score, away_score, status
+		        home_score, away_score, penalty_home_score, penalty_away_score, bracket_position, status
 		 FROM matches WHERE id = $1`, matchID,
 	).Scan(&m.ID, &m.MatchNumber, &m.Stage, &m.GroupName, &m.KickoffUTC,
-		&m.HomeTeam, &m.AwayTeam, &m.HomeScore, &m.AwayScore, &m.Status)
+		&m.HomeTeam, &m.AwayTeam, &m.HomeScore, &m.AwayScore,
+		&m.PenaltyHomeScore, &m.PenaltyAwayScore, &m.BracketPosition, &m.Status)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			respondError(w, http.StatusNotFound, "match not found")
@@ -109,8 +117,10 @@ func (h *MatchHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 type enterResultRequest struct {
-	HomeScore int `json:"home_score"`
-	AwayScore int `json:"away_score"`
+	HomeScore        int  `json:"home_score"`
+	AwayScore        int  `json:"away_score"`
+	PenaltyHomeScore *int `json:"penalty_home_score"`
+	PenaltyAwayScore *int `json:"penalty_away_score"`
 }
 
 func (h *MatchHandler) UpdateLiveScore(w http.ResponseWriter, r *http.Request) {
@@ -131,11 +141,14 @@ func (h *MatchHandler) UpdateLiveScore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	penHome := nullIfNil(req.PenaltyHomeScore)
+	penAway := nullIfNil(req.PenaltyAwayScore)
+
 	tag, err := h.DB.Exec(r.Context(),
 		`UPDATE matches
-		 SET home_score = $1, away_score = $2, updated_at = NOW()
-		 WHERE id = $3 AND status != 'finished'`,
-		req.HomeScore, req.AwayScore, matchID,
+		 SET home_score = $1, away_score = $2, penalty_home_score = $3, penalty_away_score = $4, updated_at = NOW()
+		 WHERE id = $5 AND status != 'finished'`,
+		req.HomeScore, req.AwayScore, penHome, penAway, matchID,
 	)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "failed to update live score")
@@ -190,10 +203,13 @@ func (h *MatchHandler) EnterResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	penHome := nullIfNil(req.PenaltyHomeScore)
+	penAway := nullIfNil(req.PenaltyAwayScore)
+
 	tag, err := h.DB.Exec(r.Context(),
-		`UPDATE matches SET home_score = $1, away_score = $2, status = 'finished', updated_at = NOW()
-		 WHERE id = $3`,
-		req.HomeScore, req.AwayScore, matchID,
+		`UPDATE matches SET home_score = $1, away_score = $2, penalty_home_score = $3, penalty_away_score = $4, status = 'finished', updated_at = NOW()
+		 WHERE id = $5`,
+		req.HomeScore, req.AwayScore, penHome, penAway, matchID,
 	)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "failed to update match")

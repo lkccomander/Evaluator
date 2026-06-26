@@ -9,8 +9,12 @@ export interface Prediction {
   kickoff_utc: string
   home_score_pred: number
   away_score_pred: number
+  pen_home_pred: number | null
+  pen_away_pred: number | null
   home_score: number | null
   away_score: number | null
+  penalty_home_score: number | null
+  penalty_away_score: number | null
   points_earned: number | null
   goal_pts_earned: number | null
   locked: boolean
@@ -21,18 +25,29 @@ export function getMyPredictions() {
   return request<Prediction[]>('/predictions/my', { token: authToken()! })
 }
 
-export function submitPrediction(matchId: string, homeScorePred: number, awayScorePred: number) {
+export function submitPrediction(matchId: string, homeScorePred: number, awayScorePred: number, penHome?: number, penAway?: number) {
   return request<{ message: string }>('/predictions', {
     method: 'POST',
-    body: { match_id: matchId, home_score_pred: homeScorePred, away_score_pred: awayScorePred },
+    body: {
+      match_id: matchId,
+      home_score_pred: homeScorePred,
+      away_score_pred: awayScorePred,
+      pen_home_pred: penHome ?? null,
+      pen_away_pred: penAway ?? null,
+    },
     token: authToken()!,
   })
 }
 
-export function updatePrediction(id: string, homeScorePred: number, awayScorePred: number) {
+export function updatePrediction(id: string, homeScorePred: number, awayScorePred: number, penHome?: number, penAway?: number) {
   return request<{ message: string }>(`/predictions/${id}`, {
     method: 'PUT',
-    body: { home_score_pred: homeScorePred, away_score_pred: awayScorePred },
+    body: {
+      home_score_pred: homeScorePred,
+      away_score_pred: awayScorePred,
+      pen_home_pred: penHome ?? null,
+      pen_away_pred: penAway ?? null,
+    },
     token: authToken()!,
   })
 }
