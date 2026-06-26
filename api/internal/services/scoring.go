@@ -83,7 +83,9 @@ func ScoreMatch(ctx context.Context, db *pgxpool.Pool, matchID string) (*Scoring
 
 		penaltyBonus := 0
 		if penaltyHome != nil && penaltyAway != nil && p.PenHome != nil && p.PenAway != nil && p.HomePred == p.AwayPred {
-			if *p.PenHome == *penaltyHome && *p.PenAway == *penaltyAway {
+			predHomeWins := *p.PenHome > *p.PenAway
+			actualHomeWins := *penaltyHome > *penaltyAway
+			if predHomeWins == actualHomeWins {
 				penaltyBonus = 1
 			}
 		}

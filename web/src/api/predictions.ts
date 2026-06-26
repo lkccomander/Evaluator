@@ -25,28 +25,26 @@ export function getMyPredictions() {
   return request<Prediction[]>('/predictions/my', { token: authToken()! })
 }
 
-export function submitPrediction(matchId: string, homeScorePred: number, awayScorePred: number, penHome?: number, penAway?: number) {
+export function submitPrediction(matchId: string, homeScorePred: number, awayScorePred: number, penWinner?: 'home' | 'away') {
   return request<{ message: string }>('/predictions', {
     method: 'POST',
     body: {
       match_id: matchId,
       home_score_pred: homeScorePred,
       away_score_pred: awayScorePred,
-      pen_home_pred: penHome ?? null,
-      pen_away_pred: penAway ?? null,
+      pen_winner: penWinner ?? null,
     },
     token: authToken()!,
   })
 }
 
-export function updatePrediction(id: string, homeScorePred: number, awayScorePred: number, penHome?: number, penAway?: number) {
+export function updatePrediction(id: string, homeScorePred: number, awayScorePred: number, penWinner?: 'home' | 'away') {
   return request<{ message: string }>(`/predictions/${id}`, {
     method: 'PUT',
     body: {
       home_score_pred: homeScorePred,
       away_score_pred: awayScorePred,
-      pen_home_pred: penHome ?? null,
-      pen_away_pred: penAway ?? null,
+      pen_winner: penWinner ?? null,
     },
     token: authToken()!,
   })

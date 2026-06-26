@@ -1,6 +1,12 @@
 # Env
 .env
 
+# Brainstorm session files
+.superpowers/
+
+# Compiled binaries
+api/server.exe
+
 # Go
 api/bin/
 api/tmp/

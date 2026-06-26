@@ -19,11 +19,10 @@ type PredictionHandler struct {
 }
 
 type submitPredictionRequest struct {
-	MatchID       string `json:"match_id"`
-	HomeScorePred int    `json:"home_score_pred"`
-	AwayScorePred int    `json:"away_score_pred"`
-	PenHomePred   *int   `json:"pen_home_pred"`
-	PenAwayPred   *int   `json:"pen_away_pred"`
+	MatchID       string  `json:"match_id"`
+	HomeScorePred int     `json:"home_score_pred"`
+	AwayScorePred int     `json:"away_score_pred"`
+	PenWinner     *string `json:"pen_winner"`
 }
 
 func (h *PredictionHandler) Submit(w http.ResponseWriter, r *http.Request) {
@@ -78,23 +77,20 @@ func (h *PredictionHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	isKnockout := stage != "" && stage != "group"
 	isDrawPrediction := req.HomeScorePred == req.AwayScorePred
 
+	var penHome, penAway *int
 	if isKnockout && isDrawPrediction {
-		if req.PenHomePred == nil || req.PenAwayPred == nil {
-			respondError(w, http.StatusBadRequest, "penalty prediction required when predicting a draw in knockout matches")
+		if req.PenWinner == nil || (*req.PenWinner != "home" && *req.PenWinner != "away") {
+			respondError(w, http.StatusBadRequest, "penalty winner required (\"home\" or \"away\") when predicting a draw in knockout matches")
 			return
 		}
-		if *req.PenHomePred < 0 || *req.PenAwayPred < 0 {
-			respondError(w, http.StatusBadRequest, "penalty scores must be non-negative")
-			return
-		}
-		if *req.PenHomePred == *req.PenAwayPred {
-			respondError(w, http.StatusBadRequest, "penalty shootout cannot end in a draw")
-			return
+		if *req.PenWinner == "home" {
+			one := 1; zero := 0
+			penHome = &one; penAway = &zero
+		} else {
+			one := 1; zero := 0
+			penHome = &zero; penAway = &one
 		}
 	}
-
-	penHome := maybeNilInt(req.PenHomePred)
-	penAway := maybeNilInt(req.PenAwayPred)
 
 	_, err = h.DB.Exec(r.Context(),
 		`INSERT INTO predictions (user_id, match_id, home_score_pred, away_score_pred, pen_home_pred, pen_away_pred)
@@ -157,23 +153,20 @@ func (h *PredictionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	isKnockout := stage != "" && stage != "group"
 	isDrawPrediction := req.HomeScorePred == req.AwayScorePred
 
+	var penHome, penAway *int
 	if isKnockout && isDrawPrediction {
-		if req.PenHomePred == nil || req.PenAwayPred == nil {
-			respondError(w, http.StatusBadRequest, "penalty prediction required when predicting a draw in knockout matches")
+		if req.PenWinner == nil || (*req.PenWinner != "home" && *req.PenWinner != "away") {
+			respondError(w, http.StatusBadRequest, "penalty winner required (\"home\" or \"away\") when predicting a draw in knockout matches")
 			return
 		}
-		if *req.PenHomePred < 0 || *req.PenAwayPred < 0 {
-			respondError(w, http.StatusBadRequest, "penalty scores must be non-negative")
-			return
-		}
-		if *req.PenHomePred == *req.PenAwayPred {
-			respondError(w, http.StatusBadRequest, "penalty shootout cannot end in a draw")
-			return
+		if *req.PenWinner == "home" {
+			one := 1; zero := 0
+			penHome = &one; penAway = &zero
+		} else {
+			one := 1; zero := 0
+			penHome = &zero; penAway = &one
 		}
 	}
-
-	penHome := maybeNilInt(req.PenHomePred)
-	penAway := maybeNilInt(req.PenAwayPred)
 
 	_, err = h.DB.Exec(r.Context(),
 		`UPDATE predictions SET home_score_pred = $1, away_score_pred = $2, pen_home_pred = $3, pen_away_pred = $4, updated_at = NOW()
@@ -189,12 +182,11 @@ func (h *PredictionHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 type adminSetPredictionRequest struct {
-	UserID        string `json:"user_id"`
-	MatchID       string `json:"match_id"`
-	HomeScorePred int    `json:"home_score_pred"`
-	AwayScorePred int    `json:"away_score_pred"`
-	PenHomePred   *int   `json:"pen_home_pred"`
-	PenAwayPred   *int   `json:"pen_away_pred"`
+	UserID        string  `json:"user_id"`
+	MatchID       string  `json:"match_id"`
+	HomeScorePred int     `json:"home_score_pred"`
+	AwayScorePred int     `json:"away_score_pred"`
+	PenWinner     *string `json:"pen_winner"`
 }
 
 func (h *PredictionHandler) AdminSetPrediction(w http.ResponseWriter, r *http.Request) {
@@ -219,8 +211,16 @@ func (h *PredictionHandler) AdminSetPrediction(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	penHome := maybeNilInt(req.PenHomePred)
-	penAway := maybeNilInt(req.PenAwayPred)
+	var penHome, penAway *int
+	if req.PenWinner != nil {
+		if *req.PenWinner == "home" {
+			one := 1; zero := 0
+			penHome = &one; penAway = &zero
+		} else if *req.PenWinner == "away" {
+			one := 1; zero := 0
+			penHome = &zero; penAway = &one
+		}
+	}
 
 	_, err = h.DB.Exec(r.Context(),
 		`INSERT INTO predictions (user_id, match_id, home_score_pred, away_score_pred, pen_home_pred, pen_away_pred)
