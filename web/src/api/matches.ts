@@ -39,3 +39,10 @@ export function updateLiveScore(matchId: string, homeScore: number, awayScore: n
     { method: 'PUT', body: { home_score: homeScore, away_score: awayScore }, token: authToken()! },
   )
 }
+
+export function updateMatchKickoff(matchId: string, kickoffCST: string) {
+  return request<{ message: string }>(
+    `/matches/${matchId}/kickoff`,
+    { method: 'PUT', body: { kickoff_cst: kickoffCST }, token: authToken()! },
+  )
+}

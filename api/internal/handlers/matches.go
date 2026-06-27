@@ -232,6 +232,56 @@ func (h *MatchHandler) EnterResult(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+type updateKickoffRequest struct {
+	KickoffCST string `json:"kickoff_cst"`
+}
+
+func (h *MatchHandler) UpdateKickoff(w http.ResponseWriter, r *http.Request) {
+	matchIDStr := chi.URLParam(r, "id")
+	matchID, err := uuid.Parse(matchIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid match id")
+		return
+	}
+
+	var req updateKickoffRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.KickoffCST == "" {
+		respondError(w, http.StatusBadRequest, "kickoff_cst is required")
+		return
+	}
+
+	loc, err := time.LoadLocation("America/Costa_Rica")
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "timezone error")
+		return
+	}
+
+	kickoff, err := time.ParseInLocation("2006-01-02T15:04", req.KickoffCST, loc)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid kickoff_cst format, use YYYY-MM-DDTHH:MM")
+		return
+	}
+
+	tag, err := h.DB.Exec(r.Context(),
+		"UPDATE matches SET kickoff_utc = $1, updated_at = NOW() WHERE id = $2",
+		kickoff.UTC(), matchID,
+	)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "database error")
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		respondError(w, http.StatusNotFound, "match not found")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"message": "kickoff updated"})
+}
+
 func (h *MatchHandler) PredictionStats(w http.ResponseWriter, r *http.Request) {
 	matchIDStr := chi.URLParam(r, "id")
 	matchID, err := uuid.Parse(matchIDStr)

@@ -108,6 +108,7 @@ func main() {
 				r.Use(middleware.Admin)
 				r.Put("/{id}/score", matchH.UpdateLiveScore)
 				r.Put("/{id}/result", matchH.EnterResult)
+				r.Put("/{id}/kickoff", matchH.UpdateKickoff)
 			})
 		})
 

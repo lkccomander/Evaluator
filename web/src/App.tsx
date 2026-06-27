@@ -12,6 +12,7 @@ import AdminResults from './pages/AdminResults'
 import AdminUsers from './pages/AdminUsers'
 import AdminBannerConfig from './pages/AdminBannerConfig'
 import AdminSettings from './pages/AdminSettings'
+import AdminSchedule from './pages/AdminSchedule'
 import PredictionGraphPage from './pages/PredictionGraphPage'
 import BarChartRacePage from './pages/BarChartRacePage'
 import Status from './pages/Status'
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
           <Route path="/admin/banner-config" element={<AdminRoute><AdminBannerConfig /></AdminRoute>} />
           <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
+          <Route path="/admin/schedule" element={<AdminRoute><AdminSchedule /></AdminRoute>} />
           <Route path="/prediction-graph" element={<Protected><PredictionGraphPage /></Protected>} />
           <Route path="/race" element={<Protected><BarChartRacePage /></Protected>} />
           <Route path="/status" element={<Status />} />
