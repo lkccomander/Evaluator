@@ -21,11 +21,12 @@ func ScoreMatch(ctx context.Context, db *pgxpool.Pool, matchID string) (*Scoring
 
 	var homeScore, awayScore int
 	var penaltyHome, penaltyAway *int
+	var stage string
 	err = tx.QueryRow(ctx,
-		`SELECT home_score, away_score, penalty_home_score, penalty_away_score
+		`SELECT home_score, away_score, penalty_home_score, penalty_away_score, stage
 		 FROM matches WHERE id = $1 AND home_score IS NOT NULL AND away_score IS NOT NULL`,
 		matchID,
-	).Scan(&homeScore, &awayScore, &penaltyHome, &penaltyAway)
+	).Scan(&homeScore, &awayScore, &penaltyHome, &penaltyAway, &stage)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("match not found or score not yet entered")
@@ -33,6 +34,7 @@ func ScoreMatch(ctx context.Context, db *pgxpool.Pool, matchID string) (*Scoring
 		return nil, fmt.Errorf("query match: %w", err)
 	}
 
+	isKnockout := stage != "" && stage != "group"
 	actualOutcome := sign(homeScore - awayScore)
 
 	rows, err := tx.Query(ctx,
@@ -64,10 +66,18 @@ func ScoreMatch(ctx context.Context, db *pgxpool.Pool, matchID string) (*Scoring
 		var points, goalPts int
 
 		if p.HomePred == homeScore && p.AwayPred == awayScore {
-			points = 3
+			if isKnockout {
+				points = 3
+			} else {
+				points = 5
+			}
 			goalPts = max(1, homeScore) + max(1, awayScore)
 		} else if sign(p.HomePred-p.AwayPred) == actualOutcome {
-			points = 1
+			if isKnockout {
+				points = 1
+			} else {
+				points = 3
+			}
 			switch {
 			case p.HomePred == homeScore:
 				goalPts = max(1, homeScore)
