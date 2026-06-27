@@ -65,10 +65,6 @@ export default function AdminKnockout() {
 
   const allTeams = Array.from(possibleTeams).sort()
 
-  const needsSeed = knockoutMatches?.filter(
-    m => !m.home_team || !m.away_team || m.home_team === '' || m.away_team === '',
-  ) ?? []
-
   const setTeam = (bracketPos: number, field: 'home' | 'away', value: string) => {
     setTeamOverrides(s => ({
       ...s,
