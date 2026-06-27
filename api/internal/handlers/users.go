@@ -82,6 +82,7 @@ func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
 		IsAdmin        bool       `json:"is_admin"`
 		IsVerified     bool       `json:"is_verified"`
 		IsDisabled     bool       `json:"is_disabled"`
+		RoundOf16      bool       `json:"round_of_16"`
 		CreatedAt      time.Time  `json:"created_at"`
 	}
 

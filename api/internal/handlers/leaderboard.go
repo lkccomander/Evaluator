@@ -72,8 +72,6 @@ func (h *LeaderboardHandler) Global(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, entries)
 }
 
-func (h *LeaderboardHandler) ByLeague
-
 func (h *LeaderboardHandler) ByLeague(w http.ResponseWriter, r *http.Request) {
 	leagueIDStr := chi.URLParam(r, "id")
 	leagueID, err := uuid.Parse(leagueIDStr)
