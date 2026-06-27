@@ -59,7 +59,7 @@ export default function KnockoutLeaderboard() {
                   <td className="py-2 pr-2 font-mono text-xs">{rankMedal(i + 1)}</td>
                   <td className="py-2 pr-2">
                     <div className="flex items-center gap-2">
-                      <PlayerTeamName name={e.player_team_name} verified={e.is_verified} disabled={e.is_disabled} />
+                      <PlayerTeamName name={e.player_team_name} verified={e.is_verified} disabled={e.is_disabled} roundOf16={e.round_of_16} />
                       {e.league_name && (
                         <span className="text-[10px] text-muted bg-surface px-1.5 py-0.5 rounded">{e.league_name}</span>
                       )}

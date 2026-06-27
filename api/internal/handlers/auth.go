@@ -182,12 +182,13 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		IsAdmin        bool       `json:"is_admin"`
 		IsVerified     bool       `json:"is_verified"`
 		IsDisabled     bool       `json:"is_disabled"`
+		RoundOf16      bool       `json:"round_of_16"`
 		CreatedAt      time.Time  `json:"created_at"`
 	}
 	err := h.DB.QueryRow(r.Context(),
-		`SELECT id, username, email, player_team_name, display_name, league_id, is_admin, is_verified, is_disabled, created_at
+		`SELECT id, username, email, player_team_name, display_name, league_id, is_admin, is_verified, is_disabled, round_of_16, created_at
 		 FROM users WHERE id = $1`, userID,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.PlayerTeamName, &user.DisplayName, &user.LeagueID, &user.IsAdmin, &user.IsVerified, &user.IsDisabled, &user.CreatedAt)
+	).Scan(&user.ID, &user.Username, &user.Email, &user.PlayerTeamName, &user.DisplayName, &user.LeagueID, &user.IsAdmin, &user.IsVerified, &user.IsDisabled, &user.RoundOf16, &user.CreatedAt)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "user not found")
 		return
@@ -243,12 +244,13 @@ func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		IsAdmin        bool       `json:"is_admin"`
 		IsVerified     bool       `json:"is_verified"`
 		IsDisabled     bool       `json:"is_disabled"`
+		RoundOf16      bool       `json:"round_of_16"`
 		CreatedAt      time.Time  `json:"created_at"`
 	}
 	err = h.DB.QueryRow(r.Context(),
-		`SELECT id, username, email, player_team_name, display_name, league_id, is_admin, is_verified, is_disabled, created_at
+		`SELECT id, username, email, player_team_name, display_name, league_id, is_admin, is_verified, is_disabled, round_of_16, created_at
 		 FROM users WHERE id = $1`, userID,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.PlayerTeamName, &user.DisplayName, &user.LeagueID, &user.IsAdmin, &user.IsVerified, &user.IsDisabled, &user.CreatedAt)
+	).Scan(&user.ID, &user.Username, &user.Email, &user.PlayerTeamName, &user.DisplayName, &user.LeagueID, &user.IsAdmin, &user.IsVerified, &user.IsDisabled, &user.RoundOf16, &user.CreatedAt)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "user not found")
 		return

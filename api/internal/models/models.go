@@ -26,6 +26,7 @@ type User struct {
 	IsAdmin        bool       `json:"is_admin"`
 	IsVerified     bool       `json:"is_verified"`
 	IsDisabled     bool       `json:"is_disabled"`
+	RoundOf16      bool       `json:"round_of_16"`
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
 }
@@ -77,6 +78,7 @@ type LeaderboardEntry struct {
 	PlayerTeam   string    `json:"player_team_name"`
 	IsVerified   bool      `json:"is_verified"`
 	IsDisabled   bool      `json:"is_disabled"`
+	RoundOf16    bool      `json:"round_of_16"`
 	LeagueName   *string   `json:"league_name"`
 	TotalPoints  int       `json:"total_points"`
 	TotalGoalPts int       `json:"total_goal_pts"`

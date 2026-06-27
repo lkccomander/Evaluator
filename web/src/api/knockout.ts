@@ -27,6 +27,7 @@ export interface KnockoutLeaderboardEntry {
   player_team_name: string
   is_verified: boolean
   is_disabled: boolean
+  round_of_16: boolean
   league_name: string | null
   total_points: number
   total_goal_pts: number

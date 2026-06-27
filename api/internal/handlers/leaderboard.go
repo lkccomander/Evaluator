@@ -21,6 +21,7 @@ func (h *LeaderboardHandler) Global(w http.ResponseWriter, r *http.Request) {
 		PlayerTeam   string    `json:"player_team_name"`
 		IsVerified   bool      `json:"is_verified"`
 		IsDisabled   bool      `json:"is_disabled"`
+		RoundOf16    bool      `json:"round_of_16"`
 		LeagueName   *string   `json:"league_name"`
 		TotalPoints  int       `json:"total_points"`
 		TotalGoalPts int       `json:"total_goal_pts"`
@@ -35,6 +36,7 @@ func (h *LeaderboardHandler) Global(w http.ResponseWriter, r *http.Request) {
 					u.player_team_name,
 					u.is_verified,
 					u.is_disabled,
+					u.round_of_16,
 					l.name AS league_name,
 				COALESCE(SUM(p.points_earned), 0) AS total_points,
 				COALESCE(SUM(p.goal_pts_earned), 0) AS total_goal_pts,
@@ -56,7 +58,7 @@ func (h *LeaderboardHandler) Global(w http.ResponseWriter, r *http.Request) {
 	var entries []entry
 	for rows.Next() {
 		var e entry
-		if err := rows.Scan(&e.UserID, &e.DisplayName, &e.PlayerTeam, &e.IsVerified, &e.IsDisabled, &e.LeagueName,
+		if err := rows.Scan(&e.UserID, &e.DisplayName, &e.PlayerTeam, &e.IsVerified, &e.IsDisabled, &e.RoundOf16, &e.LeagueName,
 			&e.TotalPoints, &e.TotalGoalPts, &e.ScoredCount, &e.ExactHits); err != nil {
 			respondError(w, http.StatusInternalServerError, "scan error")
 			return
@@ -69,6 +71,8 @@ func (h *LeaderboardHandler) Global(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, http.StatusOK, entries)
 }
+
+func (h *LeaderboardHandler) ByLeague
 
 func (h *LeaderboardHandler) ByLeague(w http.ResponseWriter, r *http.Request) {
 	leagueIDStr := chi.URLParam(r, "id")
@@ -84,6 +88,7 @@ func (h *LeaderboardHandler) ByLeague(w http.ResponseWriter, r *http.Request) {
 		PlayerTeam   string    `json:"player_team_name"`
 		IsVerified   bool      `json:"is_verified"`
 		IsDisabled   bool      `json:"is_disabled"`
+		RoundOf16    bool      `json:"round_of_16"`
 		TotalPoints  int       `json:"total_points"`
 		TotalGoalPts int       `json:"total_goal_pts"`
 		ScoredCount  int       `json:"scored_matches"`
@@ -97,6 +102,7 @@ func (h *LeaderboardHandler) ByLeague(w http.ResponseWriter, r *http.Request) {
 					u.player_team_name,
 					u.is_verified,
 					u.is_disabled,
+					u.round_of_16,
 					COALESCE(SUM(p.points_earned), 0) AS total_points,
 			COALESCE(SUM(p.goal_pts_earned), 0) AS total_goal_pts,
 			COUNT(p.id) FILTER (WHERE p.points_earned IS NOT NULL) AS scored_matches,
@@ -104,7 +110,7 @@ func (h *LeaderboardHandler) ByLeague(w http.ResponseWriter, r *http.Request) {
 			FROM users u
 			LEFT JOIN predictions p ON p.user_id = u.id
 			WHERE u.league_id = $1 AND u.is_disabled = FALSE
-			GROUP BY u.id, u.display_name, u.player_team_name, u.is_verified, u.is_disabled
+			GROUP BY u.id, u.display_name, u.player_team_name, u.is_verified, u.is_disabled, u.round_of_16
 			ORDER BY total_points DESC, total_goal_pts DESC`,
 		leagueID,
 	)
@@ -117,7 +123,7 @@ func (h *LeaderboardHandler) ByLeague(w http.ResponseWriter, r *http.Request) {
 	var entries []entry
 	for rows.Next() {
 		var e entry
-		if err := rows.Scan(&e.UserID, &e.DisplayName, &e.PlayerTeam, &e.IsVerified, &e.IsDisabled,
+		if err := rows.Scan(&e.UserID, &e.DisplayName, &e.PlayerTeam, &e.IsVerified, &e.IsDisabled, &e.RoundOf16,
 			&e.TotalPoints, &e.TotalGoalPts, &e.ScoredCount, &e.ExactHits); err != nil {
 			respondError(w, http.StatusInternalServerError, "scan error")
 			return
@@ -151,6 +157,7 @@ func (h *LeaderboardHandler) MyLeague(w http.ResponseWriter, r *http.Request) {
 		PlayerTeam   string    `json:"player_team_name"`
 		IsVerified   bool      `json:"is_verified"`
 		IsDisabled   bool      `json:"is_disabled"`
+		RoundOf16    bool      `json:"round_of_16"`
 		TotalPoints  int       `json:"total_points"`
 		TotalGoalPts int       `json:"total_goal_pts"`
 		ScoredCount  int       `json:"scored_matches"`
@@ -165,6 +172,7 @@ func (h *LeaderboardHandler) MyLeague(w http.ResponseWriter, r *http.Request) {
 					u.player_team_name,
 					u.is_verified,
 					u.is_disabled,
+					u.round_of_16,
 					COALESCE(SUM(p.points_earned), 0) AS total_points,
 			COALESCE(SUM(p.goal_pts_earned), 0) AS total_goal_pts,
 			COUNT(p.id) FILTER (WHERE p.points_earned IS NOT NULL) AS scored_matches,
@@ -173,7 +181,7 @@ func (h *LeaderboardHandler) MyLeague(w http.ResponseWriter, r *http.Request) {
 			FROM users u
 			LEFT JOIN predictions p ON p.user_id = u.id
 			WHERE u.league_id = $1 AND u.is_disabled = FALSE
-			GROUP BY u.id, u.display_name, u.player_team_name, u.is_verified, u.is_disabled
+			GROUP BY u.id, u.display_name, u.player_team_name, u.is_verified, u.is_disabled, u.round_of_16
 			ORDER BY rank`,
 		*leagueID,
 	)
@@ -186,7 +194,7 @@ func (h *LeaderboardHandler) MyLeague(w http.ResponseWriter, r *http.Request) {
 	var entries []entry
 	for rows.Next() {
 		var e entry
-		if err := rows.Scan(&e.UserID, &e.DisplayName, &e.PlayerTeam, &e.IsVerified, &e.IsDisabled,
+		if err := rows.Scan(&e.UserID, &e.DisplayName, &e.PlayerTeam, &e.IsVerified, &e.IsDisabled, &e.RoundOf16,
 			&e.TotalPoints, &e.TotalGoalPts, &e.ScoredCount, &e.ExactHits, &e.Rank); err != nil {
 			respondError(w, http.StatusInternalServerError, "scan error")
 			return
@@ -325,6 +333,7 @@ func (h *LeaderboardHandler) MyGlobalPosition(w http.ResponseWriter, r *http.Req
 		PlayerTeam   string    `json:"player_team_name"`
 		IsVerified   bool      `json:"is_verified"`
 		IsDisabled   bool      `json:"is_disabled"`
+		RoundOf16    bool      `json:"round_of_16"`
 		TotalPoints  int       `json:"total_points"`
 		TotalGoalPts int       `json:"total_goal_pts"`
 		ScoredCount  int       `json:"scored_matches"`
@@ -339,6 +348,7 @@ func (h *LeaderboardHandler) MyGlobalPosition(w http.ResponseWriter, r *http.Req
 					u.player_team_name,
 					u.is_verified,
 					u.is_disabled,
+					u.round_of_16,
 					COALESCE(SUM(p.points_earned), 0) AS total_points,
 			COALESCE(SUM(p.goal_pts_earned), 0) AS total_goal_pts,
 			COUNT(p.id) FILTER (WHERE p.points_earned IS NOT NULL) AS scored_matches,
@@ -347,7 +357,7 @@ func (h *LeaderboardHandler) MyGlobalPosition(w http.ResponseWriter, r *http.Req
 			FROM users u
 			LEFT JOIN predictions p ON p.user_id = u.id
 			WHERE u.is_disabled = FALSE
-			GROUP BY u.id, u.display_name, u.player_team_name, u.is_verified, u.is_disabled
+			GROUP BY u.id, u.display_name, u.player_team_name, u.is_verified, u.is_disabled, u.round_of_16
 			ORDER BY rank`,
 	)
 	if err != nil {
@@ -359,7 +369,7 @@ func (h *LeaderboardHandler) MyGlobalPosition(w http.ResponseWriter, r *http.Req
 	var allEntries []entry
 	for rows.Next() {
 		var e entry
-		if err := rows.Scan(&e.UserID, &e.DisplayName, &e.PlayerTeam, &e.IsVerified, &e.IsDisabled,
+		if err := rows.Scan(&e.UserID, &e.DisplayName, &e.PlayerTeam, &e.IsVerified, &e.IsDisabled, &e.RoundOf16,
 			&e.TotalPoints, &e.TotalGoalPts, &e.ScoredCount, &e.ExactHits, &e.Rank); err != nil {
 			respondError(w, http.StatusInternalServerError, "scan error")
 			return

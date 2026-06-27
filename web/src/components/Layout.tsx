@@ -87,7 +87,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           {user ? (
             <>
               <span className="hidden sm:inline text-xs text-muted">
-                <PlayerTeamName name={user.player_team_name || user.username} verified={user.is_verified} disabled={user.is_disabled} />
+                <PlayerTeamName name={user.player_team_name || user.username} verified={user.is_verified} disabled={user.is_disabled} roundOf16={user.round_of_16} />
                 <button
                   onClick={() => { setEditDisplayName(user.display_name || ''); setEditTeamName(user.player_team_name || ''); setEditError(''); setEditOpen(true) }}
                   className="ml-1.5 align-middle text-muted hover:text-white transition-colors"
@@ -137,7 +137,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             ))}
             {user && (
               <span className="sm:hidden py-2 text-xs text-muted border-t border-surface-border mt-1 pt-3 flex items-center gap-1">
-                <PlayerTeamName name={user.player_team_name || user.username} verified={user.is_verified} disabled={user.is_disabled} />
+                <PlayerTeamName name={user.player_team_name || user.username} verified={user.is_verified} disabled={user.is_disabled} roundOf16={user.round_of_16} />
                 <button
                   onClick={() => { setEditDisplayName(user.display_name || ''); setEditTeamName(user.player_team_name || ''); setEditError(''); setEditOpen(true); setMenuOpen(false) }}
                   className="text-muted hover:text-white transition-colors"

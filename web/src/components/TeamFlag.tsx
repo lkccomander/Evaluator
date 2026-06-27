@@ -47,13 +47,16 @@ export function PlayerTeamName({
   name,
   verified = false,
   disabled = false,
+  roundOf16 = false,
 }: {
   name: string
   verified?: boolean
   disabled?: boolean
+  roundOf16?: boolean
 }) {
   return (
     <span className="inline-flex items-center gap-1 min-w-0 max-w-full">
+      {roundOf16 && <span title="Segunda ronda" aria-label="Segunda ronda">⚽️</span>}
       <span className="truncate">{name}</span>
       {verified && <span title="Jugador verificado" aria-label="Jugador verificado">✅</span>}
       {disabled && <span className="text-error font-bold" title="Jugador deshabilitado" aria-label="Jugador deshabilitado">✗</span>}

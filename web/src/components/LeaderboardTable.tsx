@@ -35,6 +35,7 @@ export default function LeaderboardTable({
                     name={entry.display_name || entry.player_team_name}
                     verified={entry.is_verified}
                     disabled={entry.is_disabled}
+                    roundOf16={entry.round_of_16}
                   />
                 </td>
                 {showLeague && (

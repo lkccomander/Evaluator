@@ -14,6 +14,7 @@ type FormState = {
   is_admin: boolean
   is_verified: boolean
   is_disabled: boolean
+  round_of_16: boolean
 }
 
 const emptyForm: FormState = {
@@ -26,6 +27,7 @@ const emptyForm: FormState = {
   is_admin: false,
   is_verified: false,
   is_disabled: false,
+  round_of_16: false,
 }
 
 function toPayload(form: FormState): AdminUserPayload {
@@ -39,6 +41,7 @@ function toPayload(form: FormState): AdminUserPayload {
     is_admin: form.is_admin,
     is_verified: form.is_verified,
     is_disabled: form.is_disabled,
+    round_of_16: form.round_of_16,
   }
 }
 
@@ -53,6 +56,7 @@ function formFromUser(user: AdminUser): FormState {
     is_admin: user.is_admin,
     is_verified: user.is_verified,
     is_disabled: user.is_disabled,
+    round_of_16: user.round_of_16,
   }
 }
 
@@ -160,6 +164,10 @@ export default function AdminUsers() {
             <input type="checkbox" checked={createForm.is_disabled} onChange={e => updateCreateField('is_disabled', e.target.checked)} />
             Deshabilitado
           </label>
+          <label className="flex items-center gap-2 text-sm text-muted">
+            <input type="checkbox" checked={createForm.round_of_16} onChange={e => updateCreateField('round_of_16', e.target.checked)} />
+            2da Ronda ⚽️
+          </label>
           {createMut.isError && <p className="text-error text-xs">{createMut.error.message}</p>}
           <button type="submit" disabled={createMut.isPending} className="bg-gold text-black font-semibold px-4 py-2 rounded text-sm disabled:opacity-50">
             {createMut.isPending ? 'Creando...' : 'Crear usuario'}
@@ -197,6 +205,7 @@ export default function AdminUsers() {
                   <th className="text-center py-2 px-3">Admin</th>
                   <th className="text-center py-2 px-3">Verif.</th>
                   <th className="text-center py-2 px-3">Deshab.</th>
+                  <th className="text-center py-2 px-3">2da R</th>
                 </tr>
               </thead>
               <tbody>
@@ -207,13 +216,14 @@ export default function AdminUsers() {
                     className={`border-b border-surface-border/50 cursor-pointer hover:bg-surface-card/60 transition-colors ${selectedUserId === user.id ? 'bg-surface/70' : ''}`}
                   >
                     <td className="py-3 px-3 font-medium">
-                      <PlayerTeamName name={user.player_team_name} verified={user.is_verified} disabled={user.is_disabled} />
+                      <PlayerTeamName name={user.player_team_name} verified={user.is_verified} disabled={user.is_disabled} roundOf16={user.round_of_16} />
                     </td>
                     <td className="py-3 px-3 text-muted">{user.username}<div className="text-xs">{user.email}</div></td>
                     <td className="py-3 px-3 text-muted">{user.league_name ?? '—'}</td>
                     <td className="py-3 px-3 text-center">{user.is_admin ? 'Sí' : 'No'}</td>
                     <td className="py-3 px-3 text-center">{user.is_verified ? '✅' : '—'}</td>
                     <td className="py-3 px-3 text-center">{user.is_disabled ? '✗' : '—'}</td>
+                    <td className="py-3 px-3 text-center">{user.round_of_16 ? '⚽️' : '—'}</td>
                   </tr>
                 ))}
                 {filteredUsers.length === 0 && (
@@ -274,6 +284,10 @@ export default function AdminUsers() {
               <label className="flex items-center gap-2 text-sm text-muted">
                 <input type="checkbox" checked={editForm.is_disabled} onChange={e => updateEditField('is_disabled', e.target.checked)} />
                 Deshabilitado
+              </label>
+              <label className="flex items-center gap-2 text-sm text-muted">
+                <input type="checkbox" checked={editForm.round_of_16} onChange={e => updateEditField('round_of_16', e.target.checked)} />
+                2da Ronda ⚽️
               </label>
               {updateMut.isError && <p className="text-error text-xs">{updateMut.error.message}</p>}
               {deleteMut.isError && <p className="text-error text-xs">{deleteMut.error.message}</p>}

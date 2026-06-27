@@ -17,6 +17,7 @@ export interface User {
   is_admin: boolean
   is_verified: boolean
   is_disabled: boolean
+  round_of_16: boolean
   created_at: string
 }
 
