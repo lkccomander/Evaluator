@@ -88,6 +88,18 @@ export default function MatchCard({
     setSaving(false)
   }
 
+  function stageCardBorder(stage: string): string {
+    switch (stage) {
+      case 'round_of_32': return 'border-sky-400/40 bg-sky-950/10'
+      case 'round_of_16': return 'border-green-400/40 bg-green-950/10'
+      case 'quarter': return 'border-pink-400/40 bg-pink-950/10'
+      case 'semi': return 'border-purple-400/40 bg-purple-950/10'
+      case 'third': return 'border-gray-400/40'
+      case 'final': return 'border-yellow-400/40 bg-yellow-950/10'
+      default: return 'border-surface-border'
+    }
+  }
+
   const crTime = new Date(match.kickoff_utc).toLocaleString('es-CR', {
     timeZone: 'America/Costa_Rica',
     weekday: 'short',
@@ -98,7 +110,7 @@ export default function MatchCard({
   })
 
   return (
-    <div className="bg-surface-card border border-surface-border rounded-lg p-4 flex flex-col gap-2">
+    <div className={`bg-surface-card border ${stageCardBorder(match.stage)} rounded-lg p-4 flex flex-col gap-2`}>
       <div className="flex items-center justify-between text-xs text-muted">
         <span>{match.group_name ? `Grupo ${match.group_name}` : match.stage}</span>
         <span>{crTime}</span>
