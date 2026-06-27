@@ -44,7 +44,75 @@ type refreshRequest struct {
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	respondError(w, http.StatusForbidden, "el registro de nuevos usuarios está cerrado")
+	var req registerRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	req.Username = strings.TrimSpace(req.Username)
+	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
+	req.PlayerTeamName = strings.TrimSpace(req.PlayerTeamName)
+
+	if req.Username == "" || req.Email == "" || req.Password == "" || req.PlayerTeamName == "" {
+		respondError(w, http.StatusBadRequest, "username, email, password, and player_team_name are required")
+		return
+	}
+
+	var leagueID *uuid.UUID
+	if req.LeagueCode != nil {
+		code := strings.TrimSpace(*req.LeagueCode)
+		if code != "" {
+			err := h.DB.QueryRow(r.Context(),
+				"SELECT id FROM leagues WHERE join_code = $1", code,
+			).Scan(&leagueID)
+			if err != nil {
+				respondError(w, http.StatusNotFound, "código de liga inválido")
+				return
+			}
+		}
+	}
+
+	hash, err := auth.HashPassword(req.Password)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to hash password")
+		return
+	}
+
+	var userID uuid.UUID
+	err = h.DB.QueryRow(r.Context(),
+		`INSERT INTO users (username, email, password_hash, player_team_name, league_id)
+		 VALUES ($1, $2, $3, $4, $5)
+		 RETURNING id`,
+		req.Username, req.Email, hash, req.PlayerTeamName, leagueID,
+	).Scan(&userID)
+	if err != nil {
+		if isPGUniqueViolation(err) {
+			respondError(w, http.StatusConflict, "username, email, or player team name already taken")
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "failed to create user")
+		return
+	}
+
+	accessToken, err := h.AuthSvc.GenerateAccessToken(userID, false)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to generate token")
+		return
+	}
+
+	refreshToken, err := h.storeRefreshToken(r, userID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to generate refresh token")
+		return
+	}
+
+	respondJSON(w, http.StatusCreated, tokenResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		UserID:       userID.String(),
+		IsAdmin:      false,
+	})
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
