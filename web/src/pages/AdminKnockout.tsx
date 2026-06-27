@@ -1,7 +1,17 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getBracket, seedBracket } from '../api/knockout'
-import { getMatches } from '../api/matches'
+import { getMatches, updateMatchKickoff } from '../api/matches'
+
+function toCSTDate(utcStr: string): string {
+  const d = new Date(utcStr)
+  return d.toLocaleDateString('en-CA', { timeZone: 'America/Costa_Rica' })
+}
+
+function toCSTTime(utcStr: string): string {
+  const d = new Date(utcStr)
+  return d.toLocaleTimeString('en-GB', { timeZone: 'America/Costa_Rica', hour: '2-digit', minute: '2-digit' })
+}
 
 const stageLabels: Record<string, string> = {
   round_of_32: '32vos',
@@ -26,12 +36,21 @@ export default function AdminKnockout() {
   })
 
   const [teamOverrides, setTeamOverrides] = useState<Record<number, { home: string; away: string }>>({})
+  const [dateOverrides, setDateOverrides] = useState<Record<string, { date: string; time: string }>>({})
 
   const seedMut = useMutation({
     mutationFn: seedBracket,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['knockout-bracket'] })
     },
+  })
+
+  const kickoffMut = useMutation({
+    mutationFn: (params: { matchId: string; cst: string }) => updateMatchKickoff(params.matchId, params.cst),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['knockout-bracket'] })
+    },
+    onError: () => {},
   })
 
   const groupMatches = allMatches?.filter(m => m.stage === 'group' && m.status === 'finished') ?? []
@@ -76,47 +95,66 @@ export default function AdminKnockout() {
     <div>
       <h1 className="text-lg font-bold mb-4">Armar Bracket</h1>
 
-      {(needsSeed.length === 0 || (knockoutMatches && knockoutMatches.every(m => m.home_team && m.away_team))) ? (
-        <div className="bg-surface-card border border-surface-border rounded-lg p-6 text-center">
-          <p className="text-muted text-sm">Todos los equipos han sido asignados.</p>
-          <p className="text-muted text-xs mt-1">Usa los selectores abajo para reasignar si es necesario.</p>
-        </div>
-      ) : (
-        <div className="bg-surface-card border border-surface-border rounded-lg p-6 mb-6">
-          <p className="text-sm text-muted mb-4">
-            Asigna los equipos clasificados a las casillas del bracket. Usa los equipos finalizados de la fase de grupos.
-          </p>
+      <div className="bg-surface-card border border-surface-border rounded-lg p-6 mb-6">
+        <p className="text-sm text-muted mb-4">
+          Asigna los equipos y ajusta la fecha/hora (hora de Costa Rica).
+        </p>
+        <div className="flex gap-3">
           <button
             onClick={handleSeedAll}
             disabled={Object.keys(teamOverrides).length === 0 || seedMut.isPending}
             className="bg-gold text-black font-semibold px-4 py-2 rounded text-sm disabled:opacity-50 hover:brightness-110 transition-all min-h-[44px]"
           >
-            {seedMut.isPending ? 'Guardando...' : 'Guardar asignaciones'}
+            {seedMut.isPending ? 'Guardando...' : 'Guardar equipos'}
           </button>
-          {seedMut.isSuccess && <span className="text-green-500 text-sm ml-3">¡Guardado!</span>}
-          {seedMut.isError && <span className="text-error text-sm ml-3">Error al guardar</span>}
+          {seedMut.isSuccess && <span className="text-green-500 text-sm self-center">✓ Equipos guardados</span>}
+          {seedMut.isError && <span className="text-error text-sm self-center">Error</span>}
         </div>
-      )}
+      </div>
 
       <div className="grid gap-3">
         {knockoutMatches?.map(m => {
           const override = teamOverrides[m.bracket_position ?? -1]
           const homeVal = override?.home ?? m.home_team
           const awayVal = override?.away ?? m.away_team
-          const crTime = new Date(m.kickoff_utc).toLocaleString('es-CR', {
-            timeZone: 'America/Costa_Rica',
-            day: 'numeric',
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit',
-          })
+          const dateOverride = dateOverrides[m.id]
+          const dateVal = dateOverride?.date ?? toCSTDate(m.kickoff_utc)
+          const timeVal = dateOverride?.time ?? toCSTTime(m.kickoff_utc)
+          const dateChanged = dateOverride && (dateOverride.date !== toCSTDate(m.kickoff_utc) || dateOverride.time !== toCSTTime(m.kickoff_utc))
+          const savingKickoff = kickoffMut.isPending && kickoffMut.variables?.matchId === m.id
+
           return (
             <div key={m.id} className="bg-surface-card border border-surface-border rounded-lg p-4">
               <div className="flex items-center justify-between text-xs text-muted mb-2">
                 <span className="font-semibold text-gold uppercase tracking-wider">
                   {stageLabels[m.stage] ?? m.stage} · Posición {m.bracket_position}
                 </span>
-                <span>{crTime}</span>
+                <span className="text-muted">
+                  <input
+                    type="date"
+                    value={dateVal}
+                    onChange={e => setDateOverrides(s => ({ ...s, [m.id]: { date: e.target.value, time: timeVal } }))}
+                    className="w-32 bg-surface text-white border border-surface-border rounded px-1.5 py-1 text-xs outline-none focus:border-gold"
+                  />
+                  <input
+                    type="time"
+                    value={timeVal}
+                    onChange={e => setDateOverrides(s => ({ ...s, [m.id]: { date: dateVal, time: e.target.value } }))}
+                    className="w-24 bg-surface text-white border border-surface-border rounded px-1.5 py-1 text-xs outline-none focus:border-gold ml-1"
+                  />
+                  {dateChanged && (
+                    <button
+                      onClick={() => kickoffMut.mutate({ matchId: m.id, cst: `${dateVal}T${timeVal}` })}
+                      disabled={kickoffMut.isPending}
+                      className="ml-1 px-2 py-1 text-xs bg-gold/20 text-gold rounded hover:bg-gold/30 disabled:opacity-50"
+                    >
+                      {savingKickoff ? '...' : 'HR'}
+                    </button>
+                  )}
+                  {kickoffMut.isSuccess && dateChanged && kickoffMut.variables?.matchId === m.id && (
+                    <span className="text-green-400 text-xs ml-1">✓</span>
+                  )}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <select
