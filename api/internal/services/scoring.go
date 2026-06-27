@@ -64,10 +64,10 @@ func ScoreMatch(ctx context.Context, db *pgxpool.Pool, matchID string) (*Scoring
 		var points, goalPts int
 
 		if p.HomePred == homeScore && p.AwayPred == awayScore {
-			points = 5
+			points = 3
 			goalPts = max(1, homeScore) + max(1, awayScore)
 		} else if sign(p.HomePred-p.AwayPred) == actualOutcome {
-			points = 3
+			points = 1
 			switch {
 			case p.HomePred == homeScore:
 				goalPts = max(1, homeScore)
