@@ -11,7 +11,7 @@ const navItems = [
   { path: '/results', label: 'Resultados', auth: true },
   { path: '/my-predictions', label: 'Mis Pronósticos', auth: true },
   { path: '/leaderboard', label: 'Leaderboard', auth: true },
-  { path: '/knockout/leaderboard', label: 'KO Tabla', auth: true },
+  { path: '/knockout/leaderboard', label: 'KO Leaderboardd', auth: true },
   { path: '/prediction-graph', label: 'd3js', auth: true },
   { path: '/race', label: '🏎️ Race', auth: true },
   { path: '/status', label: 'Status', auth: false },
@@ -64,8 +64,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const hiddenPaths = isAdmin ? [] : ['/leaderboard', '/knockout/leaderboard']
   const allLinks = [
-    ...navItems.filter(i => !i.auth || user),
+    ...navItems.filter(i => (!i.auth || user) && !hiddenPaths.includes(i.path)),
     ...(isAdmin ? adminItems : []),
   ]
 
