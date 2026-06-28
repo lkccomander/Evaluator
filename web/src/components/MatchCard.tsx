@@ -235,7 +235,7 @@ export default function MatchCard({
           📊Estadisticas
         </button>
       )}
-      {leagueId && (match.locked || match.status === 'finished') && (
+      {leagueId && match.status === 'finished' && (
         <button onClick={() => setPredictionsModalOpen(true)} className="text-xs text-gold hover:underline text-center min-h-[44px] flex items-center justify-center">
           📋Pronosticos
         </button>
