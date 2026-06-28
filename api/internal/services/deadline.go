@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-const DeadlineOffset = 15 * time.Minute
+const DeadlineOffset = 5 * time.Minute
 
 func GetDeadline(kickoffUTC time.Time) time.Time {
 	return kickoffUTC.Add(-DeadlineOffset)

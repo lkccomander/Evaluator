@@ -62,13 +62,13 @@ export default function MatchCard({
   const showPenaltyPicker = isKnockout && isDrawPrediction && canPredict
   const msUntilKickoff = new Date(match.kickoff_utc).getTime() - Date.now()
   const hasStarted = msUntilKickoff <= 0
-  const statusDotClass = msUntilKickoff <= 15 * 60 * 1000
+  const statusDotClass = msUntilKickoff <= 5 * 60 * 1000
     ? 'bg-error'
     : msUntilKickoff <= 30 * 60 * 1000
       ? 'bg-yellow-400'
       : 'bg-green-500'
-  const statusLabel = msUntilKickoff <= 15 * 60 * 1000
-    ? 'Cierra en 15 minutos o menos'
+  const statusLabel = msUntilKickoff <= 5 * 60 * 1000
+    ? 'Cierra en 5 minutos o menos'
     : msUntilKickoff <= 30 * 60 * 1000
       ? 'Faltan 30 minutos o menos'
       : 'Disponible para pronóstico'
