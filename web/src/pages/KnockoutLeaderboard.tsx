@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
-import { getMyKnockoutLeaderboard, getKnockoutLeaderboard, getKnockoutLeaderboardByLeague } from '../api/knockout'
+import { getMyKnockoutLeaderboard, getKnockoutLeaderboard, getKnockoutLeaderboardByLeague, getKnockoutLeaderboardHistory } from '../api/knockout'
 import { listLeagues } from '../api/leagues'
 import { getBannerMessages, postBannerMessage } from '../api/banner'
-import { getLeaderboardHistory } from '../api/leaderboard'
 import { PlayerTeamName } from '../components/TeamFlag'
 import PointsChart from '../components/PointsChart'
 
@@ -185,11 +184,13 @@ export default function KnockoutLeaderboard() {
   const historyLeagueId = isAdmin ? (view === 'league' ? selectedLeagueId || undefined : undefined) : user?.league_id || undefined
 
   const { data: historyData, isLoading: historyLoading, isError: historyError } = useQuery({
-    queryKey: ['leaderboard', 'history', historyLeagueId],
-    queryFn: () => getLeaderboardHistory(historyLeagueId),
+    queryKey: ['knockout-leaderboard', 'history', historyLeagueId],
+    queryFn: () => getKnockoutLeaderboardHistory(historyLeagueId),
     enabled: !!historyLeagueId || !isAdmin,
     refetchInterval: 60_000,
   })
+
+  const [koRulesOpen, setKORulesOpen] = useState(false)
 
   const [rulesMarkdown, setRulesMarkdown] = useState('')
   const [rulesOpen, setRulesOpen] = useState(false)
@@ -309,6 +310,44 @@ export default function KnockoutLeaderboard() {
         <h2 className="text-sm font-semibold mb-3">Evolución de puntos</h2>
         <PointsChart data={historyData ?? []} loading={historyLoading} error={historyError} />
       </div>
+
+      <section className="mt-6 rounded-[28px] border border-surface-border bg-[linear-gradient(180deg,rgba(26,26,26,0.98),rgba(15,15,15,0.98))] shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+        <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between md:p-6">
+          <button
+            type="button"
+            onClick={() => setKORulesOpen(o => !o)}
+            className="flex flex-1 items-center justify-between gap-4 rounded-2xl border border-surface-border/80 bg-white/[0.02] px-4 py-3 text-left transition-colors hover:border-gold/30 hover:bg-gold/5"
+          >
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.32em] text-gold/75">Reglas</div>
+              <h2 className="text-lg font-bold text-white">Segunda Fase</h2>
+              <p className="mt-1 text-sm text-muted">{koRulesOpen ? 'Ocultar' : 'Puntajes, penales y desempates'}</p>
+            </div>
+            <span className={`text-2xl leading-none text-gold transition-transform ${koRulesOpen ? 'rotate-180' : ''}`} aria-hidden="true">▾</span>
+          </button>
+        </div>
+        {koRulesOpen && (
+          <div className="space-y-4 border-t border-surface-border/80 px-5 pb-5 pt-4 md:px-6 md:pb-6 text-sm text-slate-200">
+            <div className="rounded-2xl border border-surface-border/80 bg-black/20 p-4">
+              <h3 className="text-gold font-semibold mb-2">Puntaje</h3>
+              <ul className="space-y-1.5 list-disc list-inside">
+                <li><strong className="text-white">Resultado exacto:</strong> <span className="text-gold">3 pts</span></li>
+                <li><strong className="text-white">Solo acierto (local/empate/visita):</strong> <span className="text-gold">1 pt</span></li>
+                <li><strong className="text-white">Bonus penal:</strong> <span className="text-gold">+1 pt</span> si acertás el ganador en penales (solo cuando pronosticás empate)</li>
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-surface-border/80 bg-black/20 p-4">
+              <h3 className="text-gold font-semibold mb-2">Pronóstico de penales</h3>
+              <p className="mb-1">Cuando pronosticás un empate en un partido de eliminatoria, se habilita un selector para elegir el ganador en penales.</p>
+              <p className="text-muted">No se pronostica un marcador de penales, solo se selecciona el equipo que ganará la tanda.</p>
+            </div>
+            <div className="rounded-2xl border border-surface-border/80 bg-black/20 p-4">
+              <h3 className="text-gold font-semibold mb-2">Desempate</h3>
+              <p>El desempate en la tabla se define por <strong className="text-white">puntos totales</strong>. A igualdad de puntos, se desempata por <strong className="text-white">gol pts</strong> (puntos obtenidos por acertar el resultado exacto).</p>
+            </div>
+          </div>
+        )}
+      </section>
 
       <BannerMessageSection />
 

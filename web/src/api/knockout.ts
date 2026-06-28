@@ -47,6 +47,11 @@ export function getKnockoutLeaderboardByLeague(leagueId: string) {
   return request<KnockoutLeaderboardEntry[]>('/leaderboard/knockout/league/' + leagueId, { token: authToken()! })
 }
 
+export function getKnockoutLeaderboardHistory(leagueId?: string) {
+  const params = leagueId ? `?league_id=${leagueId}` : ''
+  return request<import('./leaderboard').HistoryDayEntry[]>('/leaderboard/knockout/history' + params)
+}
+
 export interface UnseededSlot {
   bracket_position: number
   home_team: string | null

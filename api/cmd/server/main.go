@@ -167,6 +167,7 @@ func main() {
 
 		r.Get("/knockout/bracket", koH.Bracket)
 		r.Get("/leaderboard/knockout", koH.Leaderboard)
+		r.Get("/leaderboard/knockout/history", koH.History)
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(authSvc))
