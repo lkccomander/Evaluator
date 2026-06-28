@@ -42,6 +42,7 @@ export default function AdminKnockout() {
     mutationFn: seedBracket,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['knockout-bracket'] })
+      qc.invalidateQueries({ queryKey: ['matches'] })
     },
   })
 
@@ -49,6 +50,7 @@ export default function AdminKnockout() {
     mutationFn: (params: { matchId: string; cst: string }) => updateMatchKickoff(params.matchId, params.cst),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['knockout-bracket'] })
+      qc.invalidateQueries({ queryKey: ['matches'] })
     },
     onError: () => {},
   })
