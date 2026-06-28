@@ -5,7 +5,6 @@ import { getMyKnockoutLeaderboard, getKnockoutLeaderboard, getKnockoutLeaderboar
 import { listLeagues } from '../api/leagues'
 import { getBannerMessages, postBannerMessage } from '../api/banner'
 import { getLeaderboardHistory } from '../api/leaderboard'
-import { request } from '../api/client'
 import { PlayerTeamName } from '../components/TeamFlag'
 import PointsChart from '../components/PointsChart'
 
