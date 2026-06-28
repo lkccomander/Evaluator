@@ -170,7 +170,13 @@ func main() {
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(authSvc))
+			r.Get("/leaderboard/knockout/mine", koH.MyKnockoutLeague)
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(authSvc))
 			r.Use(middleware.Admin)
+			r.Get("/leaderboard/knockout/league/{id}", koH.KnockoutByLeague)
 			r.Get("/admin/knockout/unseeded", koH.UnseededSlots)
 			r.Post("/admin/knockout/seed", koH.Seed)
 		})

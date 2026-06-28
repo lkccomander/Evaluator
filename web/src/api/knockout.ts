@@ -39,6 +39,14 @@ export function getKnockoutLeaderboard() {
   return request<KnockoutLeaderboardEntry[]>('/leaderboard/knockout')
 }
 
+export function getMyKnockoutLeaderboard() {
+  return request<KnockoutLeaderboardEntry[]>('/leaderboard/knockout/mine', { token: authToken()! })
+}
+
+export function getKnockoutLeaderboardByLeague(leagueId: string) {
+  return request<KnockoutLeaderboardEntry[]>('/leaderboard/knockout/league/' + leagueId, { token: authToken()! })
+}
+
 export interface UnseededSlot {
   bracket_position: number
   home_team: string | null
