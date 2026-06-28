@@ -230,7 +230,7 @@ export default function MatchCard({
           </span>
         )}
       </div>
-      {stats && showChart && (
+      {stats && match.status === 'finished' && (
         <button onClick={() => setModalOpen(true)} className="text-xs text-gold hover:underline text-center min-h-[44px] flex items-center justify-center">
           📊Estadisticas
         </button>
