@@ -4,6 +4,13 @@ import { getMatches, enterResult, updateLiveScore } from '../api/matches'
 import { getBannerMessages, postBannerMessage } from '../api/banner'
 import { TeamName } from '../components/TeamFlag'
 
+const crDateFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Costa_Rica',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
 export default function AdminResults() {
   const [scores, setScores] = useState<Record<string, { home: string; away: string }>>({})
   const qc = useQueryClient()
@@ -14,7 +21,11 @@ export default function AdminResults() {
     refetchInterval: 15_000,
   })
 
-  const filteredMatches = matches ?? []
+  const todayCr = crDateFormatter.format(new Date())
+  const yesterdayCr = crDateFormatter.format(new Date(Date.now() - 86400000))
+  const tomorrowCr = crDateFormatter.format(new Date(Date.now() + 86400000))
+  const windowDays = new Set([yesterdayCr, todayCr, tomorrowCr])
+  const filteredMatches = matches?.filter(m => windowDays.has(crDateFormatter.format(new Date(m.kickoff_utc)))) ?? []
 
   const resultMut = useMutation({
     mutationFn: ({ id, home, away }: { id: string; home: number; away: number }) =>
