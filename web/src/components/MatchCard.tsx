@@ -18,14 +18,16 @@ export default function MatchCard({
 }: {
   match: Match
   userHasLeague: boolean
-  userPrediction?: { home: number; away: number } | null
+  userPrediction?: { home: number; away: number; pen_home_pred?: number | null; pen_away_pred?: number | null } | null
   leagueId?: string
   chartVisibility?: 'always' | 'locked_only'
   showPredictionNames?: boolean
 }) {
   const [home, setHome] = useState(userPrediction?.home?.toString() ?? '')
   const [away, setAway] = useState(userPrediction?.away?.toString() ?? '')
-  const [penWinner, setPenWinner] = useState<'home' | 'away' | null>(null)
+  const [penWinner, setPenWinner] = useState<'home' | 'away' | null>(
+    userPrediction?.pen_home_pred === 1 ? 'home' : userPrediction?.pen_home_pred === 0 ? 'away' : null,
+  )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [stats, setStats] = useState<PredictionStats | null>(null)
@@ -35,7 +37,10 @@ export default function MatchCard({
   useEffect(() => {
     setHome(userPrediction?.home?.toString() ?? '')
     setAway(userPrediction?.away?.toString() ?? '')
-  }, [match.id, userPrediction?.home, userPrediction?.away])
+    setPenWinner(
+      userPrediction?.pen_home_pred === 1 ? 'home' : userPrediction?.pen_home_pred === 0 ? 'away' : null,
+    )
+  }, [match.id, userPrediction?.home, userPrediction?.away, userPrediction?.pen_home_pred])
 
   const showChart = chartVisibility === 'always' || match.locked || match.status === 'finished'
 

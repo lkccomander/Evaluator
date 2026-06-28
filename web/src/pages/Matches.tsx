@@ -32,7 +32,7 @@ export default function Matches() {
   const showPredictionNames = publicSettings?.show_prediction_names === 'true'
 
   const predMap = new Map(
-    predictions?.map(p => [p.match_id, { home: p.home_score_pred, away: p.away_score_pred }]) ?? [],
+    predictions?.map(p => [p.match_id, { home: p.home_score_pred, away: p.away_score_pred, pen_home_pred: p.pen_home_pred, pen_away_pred: p.pen_away_pred }]) ?? [],
   )
 
   const upcoming = matches?.filter(m => m.status !== 'finished') ?? []
