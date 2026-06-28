@@ -12,7 +12,7 @@ const crDateFormatter = new Intl.DateTimeFormat('en-CA', {
 })
 
 export default function AdminResults() {
-  const [scores, setScores] = useState<Record<string, { home: string; away: string; penHome: string; penAway: string }>>({})
+  const [scores, setScores] = useState<Record<string, { home: string; away: string; penWinner: 'home' | 'away' | '' }>>({})
   const qc = useQueryClient()
 
   const { data: matches } = useQuery({
@@ -45,10 +45,10 @@ export default function AdminResults() {
     },
   })
 
-  const setScore = (id: string, field: 'home' | 'away' | 'penHome' | 'penAway', value: string) => {
+  const setScore = (id: string, field: 'home' | 'away' | 'penWinner', value: string) => {
     setScores(s => ({
       ...s,
-      [id]: { ...s[id] ?? { home: '', away: '', penHome: '', penAway: '' }, [field]: value },
+      [id]: { ...s[id] ?? { home: '', away: '', penWinner: '' }, [field]: value },
     }))
   }
 
@@ -153,7 +153,7 @@ export default function AdminResults() {
                     {liveScoreMut.isPending ? '...' : 'Marcador en vivo'}
                   </button>
                   <button
-                    onClick={() => resultMut.mutate({ id: m.id, home: Number(sc.home), away: Number(sc.away), penHome: sc.penHome ? Number(sc.penHome) : null, penAway: sc.penAway ? Number(sc.penAway) : null })}
+                    onClick={() => resultMut.mutate({ id: m.id, home: Number(sc.home), away: Number(sc.away), penHome: sc.penWinner === 'home' ? 1 : sc.penWinner === 'away' ? 0 : null, penAway: sc.penWinner === 'away' ? 1 : sc.penWinner === 'home' ? 0 : null })}
                     disabled={!canFinalize || sc.home === '' || sc.away === '' || resultMut.isPending || liveScoreMut.isPending}
                     className="bg-gold text-black font-semibold px-4 py-2 rounded text-xs disabled:opacity-50 hover:bg-gold-dark transition-colors min-h-[44px]"
                   >
@@ -163,26 +163,21 @@ export default function AdminResults() {
               </div>
               {isKO && (
                 <div className="mt-2 flex items-center justify-center gap-2 text-xs">
-                  <span className="text-muted">Penales:</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={sc.penHome}
-                    onChange={e => setScore(m.id, 'penHome', e.target.value)}
+                  <span className="text-muted">Ganador en penales:</span>
+                  <button
+                    onClick={() => setScore(m.id, 'penWinner', 'home')}
                     disabled={m.status === 'finished'}
-                    placeholder="local"
-                    className="w-16 bg-surface border border-surface-border rounded px-2 py-1 text-center font-mono text-white focus:outline-none focus:border-gold disabled:opacity-40"
-                  />
-                  <span className="text-muted">-</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={sc.penAway}
-                    onChange={e => setScore(m.id, 'penAway', e.target.value)}
+                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors min-h-[32px] ${sc.penWinner === 'home' ? 'bg-gold text-black' : 'bg-surface border border-surface-border text-muted hover:text-white'}`}
+                  >
+                    Local
+                  </button>
+                  <button
+                    onClick={() => setScore(m.id, 'penWinner', 'away')}
                     disabled={m.status === 'finished'}
-                    placeholder="visita"
-                    className="w-16 bg-surface border border-surface-border rounded px-2 py-1 text-center font-mono text-white focus:outline-none focus:border-gold disabled:opacity-40"
-                  />
+                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors min-h-[32px] ${sc.penWinner === 'away' ? 'bg-gold text-black' : 'bg-surface border border-surface-border text-muted hover:text-white'}`}
+                  >
+                    Visita
+                  </button>
                 </div>
               )}
               <div className="mt-2 text-xs">
