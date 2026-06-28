@@ -64,7 +64,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const hiddenPaths = isAdmin ? [] : ['/leaderboard', '/knockout/leaderboard']
+  const hiddenPaths = isAdmin ? [] : ['/leaderboard']
   const allLinks = [
     ...navItems.filter(i => (!i.auth || user) && !hiddenPaths.includes(i.path)),
     ...(isAdmin ? adminItems : []),
