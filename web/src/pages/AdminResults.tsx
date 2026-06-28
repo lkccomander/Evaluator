@@ -12,7 +12,7 @@ const crDateFormatter = new Intl.DateTimeFormat('en-CA', {
 })
 
 export default function AdminResults() {
-  const [scores, setScores] = useState<Record<string, { home: string; away: string }>>({})
+  const [scores, setScores] = useState<Record<string, { home: string; away: string; penHome: string; penAway: string }>>({})
   const qc = useQueryClient()
 
   const { data: matches } = useQuery({
@@ -28,8 +28,8 @@ export default function AdminResults() {
   const filteredMatches = matches?.filter(m => windowDays.has(crDateFormatter.format(new Date(m.kickoff_utc)))) ?? []
 
   const resultMut = useMutation({
-    mutationFn: ({ id, home, away }: { id: string; home: number; away: number }) =>
-      enterResult(id, home, away),
+    mutationFn: ({ id, home, away, penHome, penAway }: { id: string; home: number; away: number; penHome?: number | null; penAway?: number | null }) =>
+      enterResult(id, home, away, penHome, penAway),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['matches'] })
       qc.invalidateQueries({ queryKey: ['leaderboard'] })
@@ -45,10 +45,10 @@ export default function AdminResults() {
     },
   })
 
-  const setScore = (id: string, field: 'home' | 'away', value: string) => {
+  const setScore = (id: string, field: 'home' | 'away' | 'penHome' | 'penAway', value: string) => {
     setScores(s => ({
       ...s,
-      [id]: { ...s[id] ?? { home: '', away: '' }, [field]: value },
+      [id]: { ...s[id] ?? { home: '', away: '', penHome: '', penAway: '' }, [field]: value },
     }))
   }
 
@@ -97,10 +97,13 @@ export default function AdminResults() {
       </div>
 
       <div className="grid gap-2">
-        {filteredMatches.map(m => {
+          {filteredMatches.map(m => {
+          const isKO = m.stage && m.stage !== 'group'
           const sc = scores[m.id] ?? {
             home: m.home_score?.toString() ?? '',
             away: m.away_score?.toString() ?? '',
+            penHome: m.penalty_home_score?.toString() ?? '',
+            penAway: m.penalty_away_score?.toString() ?? '',
           }
           const kickoff = new Date(m.kickoff_utc).getTime()
           const hasStarted = Date.now() >= kickoff
@@ -150,7 +153,7 @@ export default function AdminResults() {
                     {liveScoreMut.isPending ? '...' : 'Marcador en vivo'}
                   </button>
                   <button
-                    onClick={() => resultMut.mutate({ id: m.id, home: Number(sc.home), away: Number(sc.away) })}
+                    onClick={() => resultMut.mutate({ id: m.id, home: Number(sc.home), away: Number(sc.away), penHome: sc.penHome ? Number(sc.penHome) : null, penAway: sc.penAway ? Number(sc.penAway) : null })}
                     disabled={!canFinalize || sc.home === '' || sc.away === '' || resultMut.isPending || liveScoreMut.isPending}
                     className="bg-gold text-black font-semibold px-4 py-2 rounded text-xs disabled:opacity-50 hover:bg-gold-dark transition-colors min-h-[44px]"
                   >
@@ -158,6 +161,30 @@ export default function AdminResults() {
                   </button>
                 </div>
               </div>
+              {isKO && (
+                <div className="mt-2 flex items-center justify-center gap-2 text-xs">
+                  <span className="text-muted">Penales:</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={sc.penHome}
+                    onChange={e => setScore(m.id, 'penHome', e.target.value)}
+                    disabled={m.status === 'finished'}
+                    placeholder="local"
+                    className="w-16 bg-surface border border-surface-border rounded px-2 py-1 text-center font-mono text-white focus:outline-none focus:border-gold disabled:opacity-40"
+                  />
+                  <span className="text-muted">-</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={sc.penAway}
+                    onChange={e => setScore(m.id, 'penAway', e.target.value)}
+                    disabled={m.status === 'finished'}
+                    placeholder="visita"
+                    className="w-16 bg-surface border border-surface-border rounded px-2 py-1 text-center font-mono text-white focus:outline-none focus:border-gold disabled:opacity-40"
+                  />
+                </div>
+              )}
               <div className="mt-2 text-xs">
                 {m.status === 'finished' ? (
                   <span className="text-muted">Finalizado</span>

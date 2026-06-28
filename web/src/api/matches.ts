@@ -26,10 +26,19 @@ export function getMatch(id: string) {
   return request<Match>(`/matches/${id}`)
 }
 
-export function enterResult(matchId: string, homeScore: number, awayScore: number) {
+export function enterResult(matchId: string, homeScore: number, awayScore: number, penaltyHome?: number | null, penaltyAway?: number | null) {
   return request<{ message: string; predictions_updated: number }>(
     `/matches/${matchId}/result`,
-    { method: 'PUT', body: { home_score: homeScore, away_score: awayScore }, token: authToken()! },
+    {
+      method: 'PUT',
+      body: {
+        home_score: homeScore,
+        away_score: awayScore,
+        penalty_home_score: penaltyHome ?? null,
+        penalty_away_score: penaltyAway ?? null,
+      },
+      token: authToken()!,
+    },
   )
 }
 
