@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import type { Match } from '../api/matches'
 import type { PredictionStats } from '../api/predictionStats'
 import { getPredictionStats } from '../api/predictionStats'
@@ -23,6 +24,7 @@ export default function MatchCard({
   chartVisibility?: 'always' | 'locked_only'
   showPredictionNames?: boolean
 }) {
+  const qc = useQueryClient()
   const [home, setHome] = useState(userPrediction?.home?.toString() ?? '')
   const [away, setAway] = useState(userPrediction?.away?.toString() ?? '')
   const [penWinner, setPenWinner] = useState<'home' | 'away' | null>(
@@ -87,6 +89,7 @@ export default function MatchCard({
         Number(away),
         showPenaltyPicker ? penWinner ?? undefined : undefined,
       )
+      qc.invalidateQueries({ queryKey: ['my-predictions'] })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar')
     }
