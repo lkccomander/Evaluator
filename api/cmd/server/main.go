@@ -50,6 +50,7 @@ func main() {
 	vizH := &handlers.VisualizationHandler{DB: pool}
 	statusH := &handlers.StatusHandler{DB: pool}
 	koH := &handlers.KnockoutHandler{DB: pool}
+	chatH := &handlers.ChatHandler{DB: pool}
 
 	r := chi.NewRouter()
 
@@ -73,6 +74,12 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(authSvc))
 			r.Post("/banner", bannerH.PostMessage)
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(authSvc))
+			r.Get("/chat", chatH.ListMessages)
+			r.Post("/chat", chatH.PostMessage)
 		})
 
 		r.Route("/auth", func(r chi.Router) {

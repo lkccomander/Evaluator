@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { PlayerTeamName } from './TeamFlag'
 import { updateProfile } from '../api/auth'
 import GameTicker from './GameTicker'
+import ChatBox from './ChatBox'
 
 const navItems = [
   { path: '/matches', label: 'Partidos', auth: true },
@@ -122,6 +123,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 	      </nav>
 
 	      <GameTicker />
+
+	      <ChatBox />
 
 	      {menuOpen && (
         <div className="md:hidden border-b border-surface-border bg-surface-card">
