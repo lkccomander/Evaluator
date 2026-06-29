@@ -10,7 +10,7 @@ export interface ChatMessage {
 }
 
 export function getChatMessages() {
-  return request<ChatMessage[]>('/chat')
+  return request<ChatMessage[]>('/chat', { token: authToken()! })
 }
 
 export function postChatMessage(message: string) {

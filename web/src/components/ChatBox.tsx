@@ -30,12 +30,16 @@ export default function ChatBox() {
     enabled: !!user,
   })
 
+  const [error, setError] = useState('')
+
   const mutation = useMutation({
     mutationFn: postChatMessage,
     onSuccess: () => {
       setText('')
+      setError('')
       queryClient.invalidateQueries({ queryKey: ['chat'] })
     },
+    onError: (e) => setError(e instanceof Error ? e.message : 'Error al enviar'),
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -74,6 +78,7 @@ export default function ChatBox() {
             ))}
           </div>
 
+          {error && <p className="text-error text-xs px-3 pt-1">{error}</p>}
           <form onSubmit={handleSubmit} className="flex items-center gap-2 border-t border-surface-border px-3 py-2">
             <input
               type="text"
