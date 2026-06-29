@@ -17,6 +17,16 @@ function displayName(msg: ChatMessage) {
   return msg.display_name || msg.username
 }
 
+function userColor(id: string): string {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) {
+    hash = ((hash << 5) - hash) + id.charCodeAt(i)
+    hash |= 0
+  }
+  const hue = ((Math.abs(hash) * 137) % 360)
+  return `hsl(${hue}, 65%, 60%)`
+}
+
 export default function ChatBox() {
   const { user } = useAuth()
   const [text, setText] = useState('')
@@ -71,7 +81,7 @@ export default function ChatBox() {
             )}
             {messages.map((msg) => (
               <div key={msg.id} className="text-xs leading-relaxed">
-                <span className="text-gold font-semibold mr-1.5">{displayName(msg)}</span>
+                <span className="font-semibold mr-1.5" style={{ color: userColor(msg.user_id) }}>{displayName(msg)}</span>
                 <span className="text-muted mr-1">{formatTime(msg.created_at)}</span>
                 <span className="text-white/90">{msg.message}</span>
               </div>
