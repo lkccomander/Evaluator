@@ -230,12 +230,12 @@ export default function MatchCard({
           </span>
         )}
       </div>
-      {stats && match.status === 'finished' && (
+      {stats && (match.locked || match.status === 'finished') && (
         <button onClick={() => setModalOpen(true)} className="text-xs text-gold hover:underline text-center min-h-[44px] flex items-center justify-center">
           📊Estadisticas
         </button>
       )}
-      {leagueId && match.status === 'finished' && (
+      {leagueId && (match.locked || match.status === 'finished') && (
         <button onClick={() => setPredictionsModalOpen(true)} className="text-xs text-gold hover:underline text-center min-h-[44px] flex items-center justify-center">
           📋Pronosticos
         </button>

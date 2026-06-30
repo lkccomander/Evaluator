@@ -290,6 +290,21 @@ func (h *MatchHandler) PredictionStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var kickoffUTC time.Time
+	err = h.DB.QueryRow(r.Context(), "SELECT kickoff_utc FROM matches WHERE id = $1", matchID).Scan(&kickoffUTC)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			respondError(w, http.StatusNotFound, "match not found")
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "database error")
+		return
+	}
+	if !services.IsPastDeadline(kickoffUTC) {
+		respondError(w, http.StatusForbidden, "predictions are visible only after the match starts")
+		return
+	}
+
 	leagueIDStr := r.URL.Query().Get("league_id")
 
 	var local, empate, visita int
@@ -342,6 +357,21 @@ func (h *MatchHandler) PredictionsList(w http.ResponseWriter, r *http.Request) {
 	matchID, err := uuid.Parse(matchIDStr)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "invalid match id")
+		return
+	}
+
+	var kickoffUTC time.Time
+	err = h.DB.QueryRow(r.Context(), "SELECT kickoff_utc FROM matches WHERE id = $1", matchID).Scan(&kickoffUTC)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			respondError(w, http.StatusNotFound, "match not found")
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "database error")
+		return
+	}
+	if !services.IsPastDeadline(kickoffUTC) {
+		respondError(w, http.StatusForbidden, "predictions are visible only after the match starts")
 		return
 	}
 
