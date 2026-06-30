@@ -96,7 +96,7 @@ func (h *KnockoutHandler) Leaderboard(w http.ResponseWriter, r *http.Request) {
 				COALESCE(SUM(p.points_earned), 0) AS total_points,
 				COALESCE(SUM(p.goal_pts_earned), 0) AS total_goal_pts,
 				COUNT(p.id) FILTER (WHERE p.points_earned IS NOT NULL) AS scored_matches,
-				COUNT(p.id) FILTER (WHERE p.points_earned = 5) AS exact_hits
+				COUNT(p.id) FILTER (WHERE p.points_earned >= 3) AS exact_hits
 				FROM users u
 				LEFT JOIN leagues l ON l.id = u.league_id
 				LEFT JOIN predictions p ON p.user_id = u.id
@@ -167,7 +167,7 @@ func (h *KnockoutHandler) MyKnockoutLeague(w http.ResponseWriter, r *http.Reques
 			COALESCE(SUM(p.points_earned), 0) AS total_points,
 			COALESCE(SUM(p.goal_pts_earned), 0) AS total_goal_pts,
 			COUNT(p.id) FILTER (WHERE p.points_earned IS NOT NULL) AS scored_matches,
-			COUNT(p.id) FILTER (WHERE p.points_earned = 5) AS exact_hits,
+			COUNT(p.id) FILTER (WHERE p.points_earned >= 3) AS exact_hits,
 			ROW_NUMBER() OVER (ORDER BY COALESCE(SUM(p.points_earned), 0) DESC, COALESCE(SUM(p.goal_pts_earned), 0) DESC) AS rank
 		FROM users u
 		LEFT JOIN predictions p ON p.user_id = u.id
@@ -232,7 +232,7 @@ func (h *KnockoutHandler) KnockoutByLeague(w http.ResponseWriter, r *http.Reques
 			COALESCE(SUM(p.points_earned), 0) AS total_points,
 			COALESCE(SUM(p.goal_pts_earned), 0) AS total_goal_pts,
 			COUNT(p.id) FILTER (WHERE p.points_earned IS NOT NULL) AS scored_matches,
-			COUNT(p.id) FILTER (WHERE p.points_earned = 5) AS exact_hits
+			COUNT(p.id) FILTER (WHERE p.points_earned >= 3) AS exact_hits
 		FROM users u
 		LEFT JOIN predictions p ON p.user_id = u.id
 		LEFT JOIN matches m ON m.id = p.match_id AND m.stage != 'group'
