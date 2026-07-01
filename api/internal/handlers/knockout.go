@@ -377,9 +377,9 @@ func (h *KnockoutHandler) History(w http.ResponseWriter, r *http.Request) {
 }
 
 type seedBracketRequest struct {
-	BracketPosition int    `json:"bracket_position"`
-	HomeTeam        string `json:"home_team"`
-	AwayTeam        string `json:"away_team"`
+	MatchID  string `json:"match_id"`
+	HomeTeam string `json:"home_team"`
+	AwayTeam string `json:"away_team"`
 }
 
 func (h *KnockoutHandler) Seed(w http.ResponseWriter, r *http.Request) {
@@ -396,10 +396,15 @@ func (h *KnockoutHandler) Seed(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusBadRequest, "home_team and away_team are required")
 			return
 		}
-		_, err := h.DB.Exec(r.Context(),
+		matchID, err := uuid.Parse(m.MatchID)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "invalid match_id")
+			return
+		}
+		_, err = h.DB.Exec(r.Context(),
 			`UPDATE matches SET home_team = $1, away_team = $2, updated_at = NOW()
-			 WHERE bracket_position = $3 AND stage != 'group'`,
-			m.HomeTeam, m.AwayTeam, m.BracketPosition,
+			 WHERE id = $3 AND stage != 'group'`,
+			m.HomeTeam, m.AwayTeam, matchID,
 		)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, "failed to seed bracket")

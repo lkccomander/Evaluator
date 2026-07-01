@@ -35,7 +35,7 @@ export default function AdminKnockout() {
     queryFn: getMatches,
   })
 
-  const [teamOverrides, setTeamOverrides] = useState<Record<number, { home: string; away: string }>>({})
+  const [teamOverrides, setTeamOverrides] = useState<Record<string, { home: string; away: string }>>({})
   const [dateOverrides, setDateOverrides] = useState<Record<string, { date: string; time: string }>>({})
 
   const seedMut = useMutation({
@@ -67,11 +67,11 @@ export default function AdminKnockout() {
 
   const allTeams = Array.from(possibleTeams).sort()
 
-  const setTeam = (bracketPos: number, field: 'home' | 'away', value: string) => {
+  const setTeam = (matchId: string, field: 'home' | 'away', value: string) => {
     setTeamOverrides(s => ({
       ...s,
-      [bracketPos]: {
-        ...(s[bracketPos] ?? { home: '', away: '' }),
+      [matchId]: {
+        ...(s[matchId] ?? { home: '', away: '' }),
         [field]: value,
       },
     }))
@@ -80,8 +80,8 @@ export default function AdminKnockout() {
   const handleSeedAll = async () => {
     const updates = Object.entries(teamOverrides)
       .filter(([_, v]) => v.home && v.away)
-      .map(([pos, v]) => ({
-        bracket_position: Number(pos),
+      .map(([matchId, v]) => ({
+        match_id: matchId,
         home_team: v.home,
         away_team: v.away,
       }))
@@ -112,7 +112,7 @@ export default function AdminKnockout() {
 
       <div className="grid gap-3">
         {knockoutMatches?.map(m => {
-          const override = teamOverrides[m.bracket_position ?? -1]
+          const override = teamOverrides[m.id]
           const homeVal = override?.home ?? m.home_team
           const awayVal = override?.away ?? m.away_team
           const dateOverride = dateOverrides[m.id]
@@ -157,7 +157,7 @@ export default function AdminKnockout() {
               <div className="flex items-center gap-2">
                 <select
                   value={homeVal}
-                  onChange={e => setTeam(m.bracket_position ?? -1, 'home', e.target.value)}
+                  onChange={e => setTeam(m.id, 'home', e.target.value)}
                   className="flex-1 bg-surface border border-surface-border rounded px-2 py-2 text-sm text-white focus:outline-none focus:border-gold"
                 >
                   <option value="">Seleccionar local</option>
@@ -168,7 +168,7 @@ export default function AdminKnockout() {
                 <span className="text-muted font-mono">vs</span>
                 <select
                   value={awayVal}
-                  onChange={e => setTeam(m.bracket_position ?? -1, 'away', e.target.value)}
+                  onChange={e => setTeam(m.id, 'away', e.target.value)}
                   className="flex-1 bg-surface border border-surface-border rounded px-2 py-2 text-sm text-white focus:outline-none focus:border-gold"
                 >
                   <option value="">Seleccionar visitante</option>
