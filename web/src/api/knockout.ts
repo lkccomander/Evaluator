@@ -62,7 +62,7 @@ export function getUnseededSlots() {
   return request<UnseededSlot[]>('/admin/knockout/unseeded', { token: authToken()! })
 }
 
-export function seedBracket(matches: { bracket_position: number; home_team: string; away_team: string }[]) {
+export function seedBracket(matches: { match_id: string; home_team: string; away_team: string }[]) {
   return request<{ message: string }>('/admin/knockout/seed', {
     method: 'POST',
     body: { matches },
